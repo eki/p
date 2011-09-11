@@ -9,11 +9,11 @@ require 'p/parser'
 module P
 
   def self.scan( source )
-    Scanner.scan( source )
+    CodeScanner.new( source ).to_a
   end
 
   def self.parse( source )
-    Parser.new( Scanner.scan( source ) ).parse
+    Parser.new( source ).parse
   end
 
 end

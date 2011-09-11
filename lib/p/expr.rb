@@ -27,6 +27,18 @@ module P
     def flatten
       Expr.new( name, *list.map { |a| a.name == name ? a.list : a }.flatten )
     end
+
+    def pp( indent=0 )
+      i, s = ' ' * indent, nil
+
+      if list.empty? 
+        s = "#{i}(#{name})"
+      else
+        s = "#{i}(#{name}\n#{list.map { |e| e.pp( indent+2 ) }.join( "\n" )})"
+      end
+
+      indent == 0 ? puts( s ) : s
+    end
   end
 
   class Atom < Expr
@@ -38,6 +50,13 @@ module P
 
     def to_s
       "(#{name} #{value})"
+    end
+
+    def pp( indent=0 )
+      i = ' ' * indent
+      s = "#{i}#{to_s}"
+
+      indent == 0 ? puts( s ) : s
     end
 
     def flatten

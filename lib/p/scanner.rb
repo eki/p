@@ -1,51 +1,98 @@
 
 module P
 
-  module Scanner
+  class Scanner
+    include Enumerable
 
-    def self.scan( source )
-      indent, tokens, line, character = nil, [], 0, 0
+    attr_reader   :source, :last_token
+    attr_accessor :position, :line, :character, :indent
+
+    def initialize( source, position=0, line=0, character=0 )
+      @source, @position, @line, @character = source, position, line, character
+    end
+
+    def eos?
+      last_token && last_token === :end
+    end
+
+    def each
+      if block_given?
+        yield( next_token )  until eos?
+      else
+        to_a
+      end
+    end
+
+    def to_a
+      ary = []
+      ary << next_token until eos?
+      ary
+    end
+
+    def next_token
+      return nil  if eos?
 
       scanner = StringScanner.new( source )
+      scanner.pos = position
 
-      until scanner.eos?
-        RULES.any? do |r|
-          if (! r[:empty] || tokens.empty?) && m = scanner.scan( r[:regexp] )
+      token = nil
+
+      until token || scanner.eos?
+        rules.any? do |r|
+          if (! r[:empty] || last_token.nil?) && m = scanner.scan( r[:regexp] )
             if g = r[:indent]
-              indent = scanner[g].length
+              @indent = scanner[g].length
             end
 
             unless r[:nop]
-              tokens << Token.new( r[:name], m, line, character, indent )
+              token = Token.new( r[:name], m, line, character, indent )
             end
 
             if r[:indent]
-              line += m.count( "\n" )
-              character = indent
+              @line += m.count( "\n" )
+              @character = indent
             else
-              character += m.length
+              @character += m.length
             end
           end
         end or raise "Invalid input #{line}:#{character} in #{source}"
       end
 
-      if tokens.empty?
-        tokens << Token.new( :start, '', 0, 0, 0 )
-      elsif tokens.last === :newline
-        tokens.pop
+      if token
+        @position = scanner.pos
+
+        @last_token = token
+      else
+        if last_token.nil?
+          @last_token = Token.new( :start, '', line, character, 0 )
+        else
+          @last_token = Token.new( :end, '', line, character, -1 )
+        end 
       end
-
-      tokens << Token.new( :end, '', line, character, 0 )
-
-      tokens
     end
 
-    RULES = []
+    def rules
+      self.class.rules
+    end
+
+    def self.rules
+      @rules ||= []
+    end
 
     def self.add( name, regexp, opts={} )
-      RULES << opts.merge( name: name, regexp: regexp )
+      self.rules << opts.merge( name: name, regexp: regexp )
     end
 
+    def inspect
+      "<Scanner last: #{last_token}, position: #{position}/#{source.length}>"
+    end
+
+    def to_s
+      inspect
+    end
+  end
+
+  class CodeScanner < Scanner
     add( :start,              /( *\n)*( *)/m,   empty: true, indent: 2 )
     add( :nil,                /nil/                                    )
     add( :true,               /true/,                                  )
@@ -74,6 +121,7 @@ module P
     add( :or,                 /[|][|]/,                                )
     add( :lshift,             /[<][<]/,                                )
     add( :rshift,             /[>][>]/,                                )
+    add( :interp,             /[#][{]/,                                )
 
     add( :add_assign,         /[+][=]/,                                )
     add( :sub_assign,         /[-][=]/,                                )
@@ -119,16 +167,16 @@ module P
     add( :open_square,        /\[/,                                    )
     add( :close_square,       /\]/,                                    )
 
-    add( :double_string,      /"[^\"]*"/m,                             )
-    add( :single_string,      /'[^\']*'/m,                             )
-    add( :backtick_string,    /`[^\`]*`/m,                             )
+    add( :double_quote,       /"/,                                     )
+    add( :single_quote,       /'/,                                     )
+    add( :backtick,           /`/,                                     )
 
     add( :id,                 /[@a-zA-Z_][\w]*[?]?/,                   )
 
     add( :comment,            /#\W[^\n]*/,                             )
 
     add( :whitespace,         / +/,                          nop: true )
-
   end
+
 end
 

@@ -101,25 +101,27 @@ module P
     end
 
     def line_separator( name )
-      set[:line_separator][name] = Rule.new( name ) { |t| t.indent }
+      set[:line_separator][name] = Rule.new( name ) { |t| true }
     end
   end
 
   class Parser
-    attr_reader :tokens
+    attr_reader :source, :scanner
 
-    def initialize( tokens )
-      @tokens = tokens
+    def initialize( source )
+      @source = source
+      @scanner = CodeScanner.new( source )
+      @scanner.next_token
     end
 
     def parse
       program = parse_program
 
       unless consume( :end )
-        if tokens.empty?
+        if scanner.eos?
           raise "Unexpected end of input"
         else
-          raise "Unexpected token: #{tokens.first}"
+          raise "Unexpected token: #{scanner.last_token}"
         end
       end
 
@@ -127,19 +129,34 @@ module P
     end
 
     def parse_program
-      Expr.new( :program, parse_block( consume( :start ).indent ) )
+      if consume( :start )
+        blocks = []
+        blocks << parse_block  until top === :end
+
+        if blocks.length > 1
+          Expr.new( :program, Expr.new( :block, *blocks ) )
+        else
+          Expr.new( :program, blocks.first )
+        end
+      else
+        raise "Missing start token!"
+      end
     end
 
-    def parse_block( indent )
+    def parse_block( min_indent=nil )
+      return false  if min_indent && top.indent <= min_indent
+
+      indent = top.indent
+
       block = [:block, parse_line]
 
-      while i = parse_line_separator( indent )
-        if i == indent
+      while parse_line_separator
+        if top.indent == indent
           block << parse_line
-        elsif i < indent
+        elsif top.indent < indent
           return Expr.new( *block )
-        elsif i > indent
-          block << parse_block( i )
+        elsif top.indent > indent
+          block << parse_block
         end
       end
 
@@ -155,6 +172,8 @@ module P
     def parse_expression( expr=nil, rule=nil )
       value = expr || parse_rule( :prefix ) || parse_rule( :value )
 
+      raise "Unexpected token: #{top.name}:#{top}"  unless value
+
       while infix = parse_infix( value, rule )
         value = infix
       end
@@ -162,8 +181,8 @@ module P
       value
     end
 
-    def parse_line_separator( indent )
-      parse_rule( :line_separator ) { |t| t.value >= indent }
+    def parse_line_separator
+      parse_rule( :line_separator )
     end
 
     def parse_rule( table, *rest )
@@ -176,15 +195,13 @@ module P
     end
 
     def parse_else( indent )
-      if tokens[0] === :newline && tokens[1] === :else && top.value == indent
-        consume( top )
-        consume( top )
-
-        if i = parse_line_separator( indent )
-          parse_block( i )
+      if top === :else && top.indent == indent
+        consume( :else )
+        if parse_line_separator
+          parse_block( indent )  or raise "Else without properly indented block"
         elsif e = parse_expression
           Expr.new( :block, e )
-        end 
+        end
       end
     end
 
@@ -196,11 +213,8 @@ module P
       if r && (! rule || r > rule)
         t = consume( top )
 
-        if r.block? &&
-           top === :newline && indent = parse_line_separator( t.value )
-
-           right = parse_block( indent )
-
+        if r.block? && top === :newline && parse_line_separator
+           right = parse_block( t.indent )
         else
           consume( :newline )
           right = parse_expression( nil, r )
@@ -216,8 +230,8 @@ module P
 
     def parse_statement( statement, token )
       if condition = parse_expression
-        if top === :newline && indent = parse_line_separator( token.value )
-          if block = parse_block( indent )
+        if top === :newline && parse_line_separator
+          if block = parse_block( token.indent )
             if block_given?
               yield( token, condition, block )
             else
@@ -234,12 +248,45 @@ module P
       end
     end
 
+    def parse_interpolated_string
+      ary, s = [], ''
+
+      until consume( :double_quote )
+        raise "Unterminated interpolated string"  if top === :end
+
+        if consume( :interp )
+          expr = parse_expression
+          expr = parse_expression( expr ) while consume( :newline )
+
+          raise "Expected } got #{t}"  unless consume( :close_curly )
+
+          unless s.empty?
+            ary << Atom.new( :string, s )
+            s = ''
+          end
+
+          ary << expr
+        else
+          s << consume( top ).value
+        end
+      end
+
+      ary << Atom.new( :string, s )  unless s.empty?
+
+      Expr.new( :interpolated_string, *ary )
+    end
+
     def consume( token )
-      tokens.shift  if top === token
+      if top === token
+        scanner.next_token
+        token
+      end
+
+    # scanner.next_token  if top === token
     end
 
     def top
-      tokens.first
+      scanner.last_token
     end
 
     def seq_to_params( seq )
@@ -251,7 +298,11 @@ module P
     end
 
     def seq_to_args( seq )
-      s = seq.flatten
+      if seq.seq?
+        s = seq.flatten
+      else
+        s = Expr.new( :seq, seq )
+      end
 
       if bad = s.list.find { |v| ! v.id? }
         raise "Arg list may only contain ids: #{s}:#{bad}"
@@ -275,9 +326,6 @@ module P
       value( :true )
       value( :false )
       value( :nil )
-      value( :double_string )
-      value( :single_string )
-      value( :backtick_string )
 
       value( :mult ) { |t| Atom.new( :glob, t ) }
       value( :exp )  { |t| Atom.new( :double_glob, t ) }
@@ -321,8 +369,8 @@ module P
         end
       end
 
-      infix( :qif, 7 ) do |t,left,right|
-        if consume( :eif )
+      infix( :question, 7 ) do |t,left,right|
+        if consume( :colon )
           if e = parse_expression( nil, Rule.new( :eif, 4 ) )
             Expr.new( :if, left, right, e )
           else
@@ -414,9 +462,13 @@ module P
         Atom.new( :regex, s )
       end
 
+      prefix( :double_quote ) do |t|
+        parse_interpolated_string
+      end
+
       prefix( :fn ) do |t|
-        if top == :newline && indent = parse_line_separator( t.value )
-          Expr.new( :fn, Expr.new( :args ), parse_block( indent ) )
+        if top === :newline && parse_line_separator
+          Expr.new( :fn, Expr.new( :args ), parse_block( t.indent ) )
         elsif expr = parse_expression
           expr = parse_expression  while expr && consume( :newline )
           Expr.new( :fn, Expr.new( :args ), Expr.new( :block, expr ) )
