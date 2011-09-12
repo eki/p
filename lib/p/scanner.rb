@@ -180,15 +180,19 @@ module P
   class InterpolatedStringScanner < Scanner
     add( :double_quote,       /"/,                                     )
     add( :esc_newline,        /\\n/,                                   )
-    add( :esc_single_quote,   /\\'/,                                   )
-    add( :esc_double_quote,   /\\"/,                                   )
     add( :esc_backslash,      /\\\\/,                                  )
     add( :esc_tab,            /\\t/,                                   )
     add( :esc_other,          /\\./,                                   )
     add( :open_interp,        /[#][{]/,                                )
-    add( :close_interp,       /[#][{]/,                                )
+    add( :close_interp,       /[}]/,                                   )
     add( :character,          /./,                                     )
   end
 
+  class UninterpolatedStringScanner < Scanner
+    add( :single_quote,       /'/,                                     )
+    add( :esc_single_quote,   /\\'/,                                   )
+    add( :esc_backslash,      /\\\\/,                                  )
+    add( :character,          /./,                                     )
+  end
 end
 

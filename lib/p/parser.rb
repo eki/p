@@ -171,7 +171,7 @@ module P
 
     def parse_expression( expr=nil, rule=nil )
       value = expr || parse_rule( :prefix ) || parse_rule( :value ) ||
-        parse_interpolated_string
+        parse_interpolated_string || parse_uninterpolated_string
 
       raise "Unexpected token: #{top.name}:#{top}"  unless value
 
@@ -263,10 +263,6 @@ module P
             break
           when t === :esc_newline
             s << "\n"
-          when t === :esc_single_quote
-            s << "'"
-          when t === :esc_double_quote
-            s << '"'
           when t === :esc_backslash
             s << "\\"
           when t === :esc_tab
@@ -302,6 +298,36 @@ module P
       consume( :double_quote )
 
       Expr.new( :interp_string, *ary )
+    end
+
+    def parse_uninterpolated_string
+      return false  unless top === :single_quote
+
+      s = ''
+      ss = UninterpolatedStringScanner.new( source, scanner.position )
+
+      while t = ss.next_token
+        case
+          when t === :single_quote
+            @scanner.position = ss.position
+            break
+          when t === :esc_single_quote
+            s << "'"
+          when t === :esc_backslash
+            s << "\\"
+          when t === :character
+            s << t.value
+
+          else raise "Unexpected token in uninterpolated string: #{t.name}:#{t}"
+        end
+      end
+
+      scanner.position = ss.position
+      scanner.next_token
+
+      consume( :single_quote )
+
+      Atom.new( :string, s )
     end
 
     def consume( token )
