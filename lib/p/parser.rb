@@ -105,6 +105,12 @@ module P
     end
   end
 
+  class UnexpectedEndError < StandardError
+    def initialize( message="Unexpected end of input." )
+      super( message )
+    end
+  end
+
   class Parser
     attr_reader :source, :scanner
 
@@ -173,7 +179,13 @@ module P
       value = expr || parse_rule( :prefix ) || parse_rule( :value ) ||
         parse_interpolated_string || parse_uninterpolated_string
 
-      raise "Unexpected token: #{top.name}:#{top}"  unless value
+      unless value
+        if top === :end
+          raise UnexpectedEndError.new
+        else
+          raise "Unexpected token: #{top.name}:#{top}"
+        end
+      end
 
       while infix = parse_infix( value, rule )
         value = infix

@@ -1,0 +1,87 @@
+#!/usr/local/rvm/bin/ruby
+
+$:.push( File.expand_path( File.dirname( __FILE__ ) ) + '/../lib' )
+
+require 'readline'
+require 'yaml'
+require 'p'
+
+def p_dir
+  d = "#{ENV['HOME']}/.p"
+
+  Dir.mkdir( d, 0755 )   unless Dir.exists? d
+
+  d
+end
+
+def history_file_path
+  p_dir && "#{p_dir}/history.yaml"
+end
+
+def load_history
+  ary = []
+
+  if (path = history_file_path) && File.exists?( path )
+    open( path, 'r' ) do |f|
+      ary = YAML.load( f.read )
+    end
+  end
+
+  Readline::HISTORY.push( *ary )
+end
+
+def save_history
+  if path = history_file_path
+    ary = Readline::HISTORY.to_a
+
+    open( path, 'w' ) do |f|
+      f.puts( ary[0..([100,ary.length].min)].to_yaml )
+    end
+  end
+end
+
+def continue_read( line )
+  while next_line = Readline.readline( '', false )
+    line << "\n" << next_line  unless next_line.empty?
+
+    begin
+      if next_line.empty?
+        P.parse( line ).pp
+        break
+      end
+    rescue P::UnexpectedEndError => e
+      continue_read( line )
+    rescue => e
+      puts e
+      puts e.backtrace.join( "\n" )
+    end
+  end
+end
+
+def read
+  while line = Readline.readline( '', false )
+    next                   if line.empty?
+    break                  if line.strip =~ /^exit$/
+
+    begin
+      if line =~ /\n/
+        continue_read( line )
+      else
+        P.parse( line ).pp
+      end
+    rescue P::UnexpectedEndError => e
+      continue_read( line )
+    rescue => e
+      puts e
+      puts e.backtrace.join( "\n" )
+    ensure
+      Readline::HISTORY.push( line )
+    end
+  end
+end
+
+load_history
+read
+save_history
+puts
+
