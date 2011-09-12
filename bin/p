@@ -75,6 +75,12 @@ def read
       puts e
       puts e.backtrace.join( "\n" )
     ensure
+      remove = []
+      Readline::HISTORY.each_with_index do |h,i| 
+        remove << i  if h == line && i < Readline::HISTORY.length
+      end
+      remove.reverse.each { |i| Readline::HISTORY.delete_at( i ) }
+
       Readline::HISTORY.push( line )
     end
   end
