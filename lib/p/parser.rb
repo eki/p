@@ -295,8 +295,6 @@ module P
             
             ss.position = scanner.position
             s = ''
-          when t === :close_interp
-            raise "Error: close_interp should have been scanned by CodeScanner"
           when t === :character
             s << t.value
 

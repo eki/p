@@ -184,7 +184,6 @@ module P
     add( :esc_tab,            /\\t/,                                   )
     add( :esc_other,          /\\./,                                   )
     add( :open_interp,        /[#][{]/,                                )
-    add( :close_interp,       /[}]/,                                   )
     add( :character,          /./,                                     )
   end
 
