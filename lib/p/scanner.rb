@@ -67,7 +67,7 @@ module P
           @last_token = Token.new( :start, '', line, character, 0 )
         else
           @last_token = Token.new( :end, '', line, character, -1 )
-        end 
+        end
       end
     end
 
@@ -121,7 +121,6 @@ module P
     add( :or,                 /[|][|]/,                                )
     add( :lshift,             /[<][<]/,                                )
     add( :rshift,             /[>][>]/,                                )
-    add( :interp,             /[#][{]/,                                )
 
     add( :add_assign,         /[+][=]/,                                )
     add( :sub_assign,         /[-][=]/,                                )
@@ -176,6 +175,19 @@ module P
     add( :comment,            /#\W[^\n]*/,                             )
 
     add( :whitespace,         / +/,                          nop: true )
+  end
+
+  class InterpolatedStringScanner < Scanner
+    add( :double_quote,       /"/,                                     )
+    add( :esc_newline,        /\\n/,                                   )
+    add( :esc_single_quote,   /\\'/,                                   )
+    add( :esc_double_quote,   /\\"/,                                   )
+    add( :esc_backslash,      /\\\\/,                                  )
+    add( :esc_tab,            /\\t/,                                   )
+    add( :esc_other,          /\\./,                                   )
+    add( :open_interp,        /[#][{]/,                                )
+    add( :close_interp,       /[#][{]/,                                )
+    add( :character,          /./,                                     )
   end
 
 end

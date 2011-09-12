@@ -170,7 +170,8 @@ module P
     end
 
     def parse_expression( expr=nil, rule=nil )
-      value = expr || parse_rule( :prefix ) || parse_rule( :value )
+      value = expr || parse_rule( :prefix ) || parse_rule( :value ) ||
+        parse_interpolated_string
 
       raise "Unexpected token: #{top.name}:#{top}"  unless value
 
@@ -249,31 +250,58 @@ module P
     end
 
     def parse_interpolated_string
-      ary, s = [], ''
+      return false  unless top === :double_quote
 
-      until consume( :double_quote )
-        raise "Unterminated interpolated string"  if top === :end
+      s, ary = '', []
+      ss = InterpolatedStringScanner.new( source, scanner.position )
 
-        if consume( :interp )
-          expr = parse_expression
-          expr = parse_expression( expr ) while consume( :newline )
+      while t = ss.next_token
+        case
+          when t === :double_quote
+            ary << Atom.new( :string, s )  unless s.empty?
+            @scanner.position = ss.position
+            break
+          when t === :esc_newline
+            s << "\n"
+          when t === :esc_single_quote
+            s << "'"
+          when t === :esc_double_quote
+            s << '"'
+          when t === :esc_backslash
+            s << "\\"
+          when t === :esc_tab
+            s << "\t"
+          when t === :esc_other
+            s << t.value[1..2]
+          when t === :open_interp
+            ary << Atom.new( :string, s )  unless s.empty?
 
-          raise "Expected } got #{t}"  unless consume( :close_curly )
+            scanner.position = ss.position
+            scanner.next_token
 
-          unless s.empty?
-            ary << Atom.new( :string, s )
+            ary << parse_expression
+
+            unless top === :close_curly
+              raise "Expected end of string interpolation!"
+            end
+            
+            ss.position = scanner.position
             s = ''
-          end
+          when t === :close_interp
+            raise "Error: close_interp should have been scanned by CodeScanner"
+          when t === :character
+            s << t.value
 
-          ary << expr
-        else
-          s << consume( top ).value
+          else raise "Unexpected token in interpolated string: #{t.name}:#{t}"
         end
       end
 
-      ary << Atom.new( :string, s )  unless s.empty?
+      scanner.position = ss.position
+      scanner.next_token
 
-      Expr.new( :interpolated_string, *ary )
+      consume( :double_quote )
+
+      Expr.new( :interp_string, *ary )
     end
 
     def consume( token )
@@ -281,8 +309,6 @@ module P
         scanner.next_token
         token
       end
-
-    # scanner.next_token  if top === token
     end
 
     def top
@@ -460,10 +486,6 @@ module P
         end
 
         Atom.new( :regex, s )
-      end
-
-      prefix( :double_quote ) do |t|
-        parse_interpolated_string
       end
 
       prefix( :fn ) do |t|

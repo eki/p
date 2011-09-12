@@ -12,6 +12,10 @@ module P
     CodeScanner.new( source ).to_a
   end
 
+  def self.iscan( source )
+    InterpolatedStringScanner.new( source, 1 ).to_a
+  end
+
   def self.parse( source )
     Parser.new( source ).parse
   end
