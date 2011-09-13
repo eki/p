@@ -49,11 +49,14 @@ def continue_read( line )
         P.parse( line ).pp
         break
       end
+    rescue P::NewlineExpectedError => e
+      continue_read( line )
     rescue P::UnexpectedEndError => e
       continue_read( line )
     rescue => e
       puts e
       puts e.backtrace.join( "\n" )
+      return
     end
   end
 end
@@ -69,6 +72,8 @@ def read
       else
         P.parse( line ).pp
       end
+    rescue P::NewlineExpectedError => e
+      continue_read( line )
     rescue P::UnexpectedEndError => e
       continue_read( line )
     rescue => e

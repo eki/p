@@ -111,6 +111,12 @@ module P
     end
   end
 
+  class NewlineExpectedError < StandardError
+    def initialize( message="Expected newline." )
+      super( message )
+    end
+  end
+
   class Parser
     attr_reader :source, :scanner
 
@@ -254,7 +260,7 @@ module P
             raise "Error: #{statement} statement without block"
           end
         else
-          raise "Error: expected newline or semicolon"
+          raise NewlineExpectedError.new
         end
       else
         raise "Error: #{statement} statement without condition"
