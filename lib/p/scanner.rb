@@ -193,5 +193,11 @@ module P
     add( :esc_backslash,      /\\\\/,                                  )
     add( :character,          /./,                                     )
   end
+
+  class SymbolScanner < Scanner
+    add( :whitespace,         /\s/,                                    )
+    add( :close,              /[)}\],]/,                               )
+    add( :character,          /./,                                     )
+  end
 end
 

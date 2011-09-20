@@ -21,8 +21,12 @@ module P
       opts[:block]
     end
 
-    def right_optional?
+    def right_optional
       opts[:right_optional]
+    end
+
+    def right_optional?
+      !! right_optional
     end
 
     def <=>( r )
@@ -54,7 +58,8 @@ module P
     attr_reader :set
 
     def initialize( &block )
-      @set = { value: {}, infix: {}, prefix: {}, line_separator: {} }
+      @set = { value: {}, infix: {}, prefix: {}, postfix: {}, 
+               line_separator: {} }
 
       instance_eval( &block )
     end
@@ -72,6 +77,11 @@ module P
     def infix( name, prec, assoc=:left, opts={}, &block )
       block ||= lambda { |t,left,right| Expr.new( t.name, left, right ) }
       set[:infix][name] = Rule.new( name, prec, assoc, opts, &block )
+    end
+
+    def postfix( name, prec, assoc=:left, opts={}, &block )
+      block ||= lambda { |t,left| Expr.new( t.name, left ) }
+      set[:postfix][name] = Rule.new( name, prec, assoc, opts, &block )
     end
 
     def assign( opts={} )
@@ -160,11 +170,15 @@ module P
 
       indent = top.indent
 
-      block = [:block, parse_line]
+      if expr = parse_disjoint
+        block = [:block, expr]
+      else
+        raise "Failed to parse_block at #{top.name}:#{top}"
+      end
 
       while parse_line_separator
         if top.indent == indent
-          block << parse_line
+          block << parse_disjoint
         elsif top.indent < indent
           return Expr.new( *block )
         elsif top.indent > indent
@@ -175,15 +189,44 @@ module P
       Expr.new( *block )
     end
 
-    def parse_line
-      expr  = parse_expression
-      expr2 = parse_expression( expr )
-      expr2 || expr
+    DISJOINT = {
+      number: true,
+      id: true,
+      true: true,
+      false: true,
+      nil: true,
+      mult: true,
+      exp: true,
+      open_paren: true,
+      open_curly: true,
+      open_square: true
+    }
+
+    def disjoint?
+      DISJOINT[top.name]
+    end
+
+    def parse_disjoint( rule=nil )
+      indent = top.indent
+      exprs  = []
+
+      while top.indent == indent
+        exprs << parse_expression( nil, rule )
+
+        break  unless disjoint?
+      end
+
+      case exprs.length
+        when 0  then false
+        when 1  then exprs.first
+        else         Expr.new( :disjoint, *exprs )
+      end
     end
 
     def parse_expression( expr=nil, rule=nil )
       value = expr || parse_rule( :prefix ) || parse_rule( :value ) ||
-        parse_interpolated_string || parse_uninterpolated_string
+        parse_interpolated_string || parse_uninterpolated_string ||
+        parse_symbol
 
       unless value
         if top === :end
@@ -193,7 +236,7 @@ module P
         end
       end
 
-      while infix = parse_infix( value, rule )
+      while infix = parse_rule( :postfix, value ) || parse_infix( value, rule )
         value = infix
       end
 
@@ -218,7 +261,7 @@ module P
         consume( :else )
         if parse_line_separator
           parse_block( indent )  or raise "Else without properly indented block"
-        elsif e = parse_expression
+        elsif e = parse_disjoint
           Expr.new( :block, e )
         end
       end
@@ -233,10 +276,10 @@ module P
         t = consume( top )
 
         if r.block? && top === :newline && parse_line_separator
-           right = parse_block( t.indent )
-        else
+          right = parse_block( t.indent )
+        elsif ! (r.right_optional? && top === r.right_optional)
           consume( :newline )
-          right = parse_expression( nil, r )
+          right = parse_disjoint( r )
         end
 
         unless right || r.right_optional?
@@ -248,7 +291,7 @@ module P
     end
 
     def parse_statement( statement, token )
-      if condition = parse_expression
+      if condition = parse_disjoint
         if top === :newline && parse_line_separator
           if block = parse_block( token.indent )
             if block_given?
@@ -293,7 +336,7 @@ module P
             scanner.position = ss.position
             scanner.next_token
 
-            ary << parse_expression
+            ary << parse_disjoint
 
             unless top === :close_curly
               raise "Expected end of string interpolation!"
@@ -346,6 +389,32 @@ module P
       Atom.new( :string, s )
     end
 
+    def parse_symbol
+      return false  unless top === :colon
+
+      p = scanner.position
+      s = ''
+      ss = SymbolScanner.new( source, p )
+
+      while t = ss.next_token
+        case
+          when t === :whitespace || t === :end || t === :close
+            break
+          when t === :character
+            scanner.position = ss.position
+            s << t.value
+
+          else raise "Unexpected token in symbol: #{t.name}:#{t}"
+        end
+      end
+
+      unless s.empty?
+        scanner.next_token
+
+        Atom.new( :symbol, s )
+      end
+    end
+
     def consume( token )
       if top === token
         scanner.next_token
@@ -373,7 +442,8 @@ module P
       end
 
       if bad = s.list.find { |v| ! v.id? }
-        raise "Arg list may only contain ids: #{s}:#{bad}"
+        # TODO:  Actually verify new arg list format
+        #raise "Arg list may only contain ids: #{s}:#{bad}"
       end
 
       Expr.new( :args, *s.list )
@@ -439,7 +509,7 @@ module P
 
       infix( :question, 7 ) do |t,left,right|
         if consume( :colon )
-          if e = parse_expression( nil, Rule.new( :eif, 4 ) )
+          if e = parse_disjoint( Rule.new( :eif, 4 ) )
             Expr.new( :if, left, right, e )
           else
             raise "Couldn't find else conditional to complete ?:"
@@ -477,7 +547,9 @@ module P
 
       infix( :exp,    17 ) 
 
-      infix( :open_paren, '*', :right, right_optional: true ) do |t,left,right|
+      infix( :open_paren, '*', :right, 
+        right_optional: :close_paren ) do |t,left,right|
+
         unless left.id? || left.fn? || left.call?
           raise "Function calls require id or fn or call, not #{left}"
         end
@@ -492,8 +564,7 @@ module P
       end
 
       prefix( :open_paren ) do |t|
-        expr = parse_expression
-        expr = parse_expression( expr )  while consume( :newline )
+        expr = parse_disjoint
 
         raise "Expected ) got #{t}"  unless consume( :close_paren )
 
@@ -501,8 +572,7 @@ module P
       end
 
       prefix( :open_curly ) do |t|
-        expr = parse_expression
-        expr = parse_expression( expr ) while consume( :newline )
+        expr = parse_disjoint
 
         raise "Expected } got #{t}"  unless consume( :close_curly )
 
@@ -510,31 +580,29 @@ module P
       end
 
       prefix( :open_square ) do |t|
-        expr = parse_expression
-        expr = parse_expression( expr ) while consume( :newline )
+        expr = parse_disjoint
 
         raise "Expected ] got #{t}"  unless consume( :close_square )
 
         Expr.new( :list, *(expr || Expr.new( :seq )).flatten.list )
       end
 
-      prefix( :div ) do |t|
-        s = ""
+  #   prefix( :div ) do |t|
+  #     s = ""
 
-        until consume( :div )
-          raise "Unterminated regex"  if top === :end
+  #     until consume( :div )
+  #       raise "Unterminated regex"  if top === :end
 
-          s << consume( top ).value
-        end
+  #       s << consume( top ).value
+  #     end
 
-        Atom.new( :regex, s )
-      end
+  #     Atom.new( :regex, s )
+  #   end
 
       prefix( :fn ) do |t|
         if top === :newline && parse_line_separator
           Expr.new( :fn, Expr.new( :args ), parse_block( t.indent ) )
-        elsif expr = parse_expression
-          expr = parse_expression  while expr && consume( :newline )
+        elsif expr = parse_disjoint
           Expr.new( :fn, Expr.new( :args ), Expr.new( :block, expr ) )
         else
           Expr.new( :fn, Expr.new( :args ), Expr.new( :block ) )
@@ -544,12 +612,8 @@ module P
       prefix( :not,  18 )
       prefix( :bnot, 18 )
 
-      infix( :not, 19, :right, right_optional: true ) do |t,left,right|
-        if right
-          raise "Unexpected #{right}"
-        end
-
-        Expr.new( :send, left, Expr.new( :id, '!' ), Expr.new( :params ))
+      postfix( :not, 19, :right ) do |t,left|
+        Expr.new( :send, left, Atom.new( :id, '!' ), Expr.new( :params ))
       end
 
       infix( :dot, 19 ) do |t,left,right|
@@ -565,14 +629,6 @@ module P
       end
 
       prefix( :sub,   20, op: :neg )
-
-      prefix( :colon, 20 ) do |t|
-        if value = parse_rule( :value )
-          Expr.new( :symbol, value )
-        else
-          raise "Expected symbol"
-        end
-      end
 
       prefix( :if ) do |t|
         parse_statement( :if, t ) do |t, condition, block|
