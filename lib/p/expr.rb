@@ -39,6 +39,14 @@ module P
 
       indent == 0 ? puts( s ) : s
     end
+
+    def evaluate
+      case name
+        when :program then list.first.evaluate
+        when :block   then list.last.evaluate
+        else pp
+      end
+    end
   end
 
   class Atom < Expr
@@ -57,6 +65,13 @@ module P
       s = "#{i}#{to_s}"
 
       indent == 0 ? puts( s ) : s
+    end
+
+    def evaluate
+      case name
+        when :number then Number.new( value.value )
+        else pp
+      end
     end
 
     def flatten
