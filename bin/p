@@ -35,7 +35,7 @@ def save_history
     ary = Readline::HISTORY.to_a
 
     open( path, 'w' ) do |f|
-      f.puts( ary[0..([100,ary.length].min)].to_yaml )
+      f.puts( ary[([0,ary.length-100].min)..(ary.length)].to_yaml )
     end
   end
 end
@@ -46,7 +46,10 @@ def continue_read( line )
 
     begin
       if next_line.empty?
-        P.parse( line ).pp
+        tree = P.parse( line )
+        if o = tree.evaluate
+          puts o.to_s
+        end
         break
       end
     rescue P::NewlineExpectedError => e
@@ -70,7 +73,10 @@ def read
       if line =~ /\n/
         continue_read( line )
       else
-        P.parse( line ).pp
+        tree = P.parse( line )
+        if o = tree.evaluate
+          puts o.to_s
+        end
       end
     rescue P::NewlineExpectedError => e
       continue_read( line )
@@ -90,6 +96,8 @@ def read
     end
   end
 end
+
+trap( 'INT' ) { save_history; puts; exit }
 
 load_history
 read
