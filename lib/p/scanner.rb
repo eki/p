@@ -23,6 +23,14 @@ module P
       end
     end
 
+    def skip( token )
+      t = next_token
+      while t === token && ! eos?
+        t = next_token
+      end
+      t
+    end
+
     def to_a
       ary = []
       ary << next_token until eos?
@@ -194,9 +202,18 @@ module P
     add( :character,          /./,                                     )
   end
 
-  class SymbolScanner < Scanner
+  class SinglePrefixScanner < Scanner
+    add( :colon,              /:/,                                     )
     add( :whitespace,         /\s/,                                    )
     add( :close,              /[)}\],]/,                               )
+    add( :character,          /./,                                     )
+  end
+
+  class DoublePrefixScanner < Scanner
+    add( :colon,              /:/,                                     )
+    add( :whitespace,         /\s/,                                    )
+    add( :close,              /\n/,                                    )
+    add( :open_interp,        /[#][{]/,                                )
     add( :character,          /./,                                     )
   end
 end

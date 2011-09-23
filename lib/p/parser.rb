@@ -226,7 +226,7 @@ module P
     def parse_expression( expr=nil, rule=nil )
       value = expr || parse_rule( :prefix ) || parse_rule( :value ) ||
         parse_interpolated_string || parse_uninterpolated_string ||
-        parse_symbol
+        parse_single_prefix_string
 
       unless value
         if top === :end
@@ -389,18 +389,21 @@ module P
       Atom.new( :string, s )
     end
 
-    def parse_symbol
+    def parse_single_prefix_string
       return false  unless top === :colon
 
       p = scanner.position
       s = ''
-      ss = SymbolScanner.new( source, p )
+      ss = SinglePrefixScanner.new( source, p )
 
       while t = ss.next_token
         case
+          when t === :colon && s.empty?
+            scanner.position = ss.position
+            return parse_double_prefix_string
           when t === :whitespace || t === :end || t === :close
             break
-          when t === :character
+          when t === :character || t === :colon
             scanner.position = ss.position
             s << t.value
 
@@ -413,6 +416,56 @@ module P
 
         Atom.new( :symbol, s )
       end
+    end
+
+    def parse_double_prefix_string
+      p = scanner.position
+      s, ws, ary = '', '', []
+      ss = DoublePrefixScanner.new( source, p )
+
+      t = ss.skip( :whitespace )
+
+      while t
+        case
+          when t === :end || t === :close
+            break
+          when t === :open_interp
+            s   << ws
+            ary << Atom.new( :symbol, s )  unless s.empty?
+
+            scanner.position = ss.position
+            scanner.next_token
+
+            ary << parse_disjoint
+
+            unless top === :close_curly
+              raise "Expected end of string interpolation!"
+            end
+            
+            ss.position = scanner.position
+            s, ws = '', ''
+          when t === :whitespace
+            scanner.position = ss.position
+            ws << t.value
+          when t === :character
+            scanner.position = ss.position
+            s << ws
+            s << t.value
+            ws = ''
+
+          else raise "Unexpected token in symbol: #{t.name}:#{t}"
+        end
+
+        t = ss.next_token
+      end
+
+      unless s.empty?
+        scanner.next_token
+
+        ary << Atom.new( :symbol, s )
+      end
+
+      Expr.new( :interp_string, *ary )
     end
 
     def consume( token )
