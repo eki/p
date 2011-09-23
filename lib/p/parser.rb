@@ -427,6 +427,9 @@ module P
 
       while t
         case
+          when t === :colon && s.empty? && ary.empty?
+            scanner.position = ss.position
+            return parse_triple_prefix_string
           when t === :end || t === :close
             break
           when t === :open_interp
@@ -463,6 +466,81 @@ module P
         scanner.next_token
 
         ary << Atom.new( :symbol, s )
+      end
+
+      Expr.new( :interp_string, *ary )
+    end
+
+    def parse_triple_prefix_string
+      p = scanner.position
+      s, ws, ary = '', '', []
+      mi, i = top.indent, nil
+      ss = TriplePrefixScanner.new( source, p )
+
+      while t = ss.next_token
+        case
+          when t === :whitespace
+            # nop
+          when t === :newline
+            break
+          else raise NewlineExpectedError.new
+        end
+      end
+
+      start = true
+
+      while t = ss.next_token
+        case
+          when t === :end
+            break
+          when t === :newline
+            s << t.value
+
+            start = true
+            ws = ''
+          when t === :open_interp
+            ary << Atom.new( :symbol, s )  unless s.empty?
+
+            scanner.position = ss.position
+            scanner.next_token
+
+            ary << parse_disjoint
+
+            unless top === :close_curly
+              raise "Expected end of string interpolation!"
+            end
+            
+            ss.position = scanner.position
+            s, ws = '', ''
+          when t === :whitespace && start
+            scanner.position = ss.position
+            ws << t.value
+          when t === :character || t === :whitespace
+            if start
+              i = ws.length  unless i
+
+              break  unless ws.length > mi
+
+              s << ' ' * (ws.length - i)
+
+              start = false
+            end
+
+            scanner.position = ss.position
+            s << t.value
+
+          else raise "Unexpected token in symbol: #{t.name}:#{t}"
+        end
+      end
+
+      unless s.empty?
+        scanner.next_token
+
+        ary << Atom.new( :symbol, s )
+      end
+
+      if ary.empty?
+        raise "Expected block for ::: prefix string"
       end
 
       Expr.new( :interp_string, *ary )

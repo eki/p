@@ -216,5 +216,13 @@ module P
     add( :open_interp,        /[#][{]/,                                )
     add( :character,          /./,                                     )
   end
+
+  class TriplePrefixScanner < Scanner
+    add( :colon,              /:/,                                     )
+    add( :newline,            /\n/,                                    )
+    add( :whitespace,         /\s/,                                    )
+    add( :open_interp,        /[#][{]/,                                )
+    add( :character,          /./,                                     )
+  end
 end
 
