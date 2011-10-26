@@ -7,7 +7,7 @@ module P
       case m
         when :to_s        then String.new( 'true' )
 
-        else Nil.new
+        else super
       end 
     end
 

@@ -4,7 +4,7 @@ module P
   class NumberExpr < Atom
 
     def evaluate( environment )
-      Number.new( value.value )
+      P.number( value.value )
     end
 
     def to_s

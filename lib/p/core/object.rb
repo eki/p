@@ -5,6 +5,7 @@ module P
     def p_send( m, *args )
       case m.to_sym
         when :to_s        then String.new( to_s )
+        when :==          then Boolean.for( self == args.first )
 
         else Nil.new
       end 

@@ -2,22 +2,22 @@
 module P
 
   class String < Object
-    attr_reader :r_string
+    attr_reader :value
 
-    def initialize( r_string='' )
-      @r_string = r_string
+    def initialize( value='' )
+      @value = value.to_s
     end
 
     def p_send( m, *args )
       case m.to_sym
-        when :length then Number.new( @r_string.length )
+        when :length then P.number( value.length )
 
-        else Nil.new
+        else super
       end 
     end
 
     def ===( o )
-      o.kind_of?( P::String ) ? o.r_string == r_string : o.to_s == r_string
+      o.kind_of?( String ) ? o.value == value : o.to_s == value
     end
 
     def to_sym
@@ -25,15 +25,15 @@ module P
     end
 
     def ==( o )
-      o.r_string == r_string
+      o.kind_of?( String ) && o.value == value
     end
 
     def inspect
-      %Q("#{r_string}")
+      %Q("#{value}")
     end
 
     def to_s
-      r_string
+      value
     end
 
   end

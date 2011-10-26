@@ -17,7 +17,7 @@ module P
         when :'mutable?'   then Boolean.for( mutable? )
         when :'immutable?' then Boolean.for( immutable? )
 
-        else Nil.new
+        else super
       end 
     end
 

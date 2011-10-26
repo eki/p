@@ -9,7 +9,7 @@ module P
         when :==
           Boolean.for( self == args.first )
 
-        else Nil.new
+        else super
       end 
     end
 

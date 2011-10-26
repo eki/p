@@ -13,7 +13,7 @@ module P
       case m
         when :to_s        then String.new( @map.inspect )
 
-        else Nil.new
+        else super
       end 
     end
 

@@ -11,15 +11,6 @@ module P
       end
     end
 
-    def p_send( m, *args )
-      case m
-        when :new         then Boolean.for( args.first )
-
-        else Nil.new
-      end 
-    end
-
-
   end
 
 end
