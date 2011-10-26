@@ -32,6 +32,14 @@ module P
       list[0]
     end
 
+    def to_params
+      Expr.params( self )
+    end
+
+    def to_args
+      Expr.args( self )
+    end
+
     def method_missing( m, *args, &block )
       if m.to_s =~ /(.*)\?$/
         name.to_s == $1
@@ -41,7 +49,7 @@ module P
     end
 
     def flatten
-      Expr.new( name, *list.map { |a| a.name == name ? a.list : a }.flatten )
+      Expr.send( name, *list.map { |a| a.name == name ? a.list : a }.flatten )
     end
 
     def reduce?
@@ -154,7 +162,7 @@ module P
 
     def reduce
       SendExpr.new( 
-        list[0].reduce, Expr.id( op ), Expr.params( list[1].reduce ) )
+        list[0].reduce, Expr.id( op ), Expr.seq( list[1].reduce ) )
     end
 
     def to_s

@@ -60,6 +60,7 @@ module P
     end
 
     def eval( args, environment )
+      args.bind( parameters, environment )
       code.evaluate( environment )
     end
 
@@ -79,7 +80,7 @@ module P
       @function, @environment = function, environment
     end
 
-    def call( args=[], env=nil )
+    def call( args=Expr.args, env=nil )
       if env
         env.parent = environment
       else

@@ -17,6 +17,14 @@ module P
       o.kind_of?( Nil ) 
     end
 
+    def to_s
+      ""
+    end
+
+    def inspect
+      "nil"
+    end
+
   end
 
 end

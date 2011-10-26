@@ -321,7 +321,7 @@ module P
       while t = ss.next_token
         case
           when t === :double_quote
-            ary << Atom.new( :string, s )  unless s.empty?
+            ary << Expr.string( s )  unless s.empty?
             @scanner.position = ss.position
             break
           when t === :esc_newline
@@ -333,7 +333,7 @@ module P
           when t === :esc_other
             s << t.value[1..2]
           when t === :open_interp
-            ary << Atom.new( :string, s )  unless s.empty?
+            ary << Expr.string( s )  unless s.empty?
 
             scanner.position = ss.position
             scanner.next_token
@@ -388,7 +388,7 @@ module P
 
       consume( :single_quote )
 
-      Atom.new( :string, s )
+      Expr.string( s )
     end
 
     def parse_single_prefix_string
@@ -416,7 +416,7 @@ module P
       unless s.empty?
         scanner.next_token
 
-        Atom.new( :symbol, s )
+        Expr.string( s )
       end
     end
 
@@ -436,7 +436,7 @@ module P
             break
           when t === :open_interp
             s   << ws
-            ary << Atom.new( :symbol, s )  unless s.empty?
+            ary << Expr.string( s )  unless s.empty?
 
             scanner.position = ss.position
             scanner.next_token
@@ -467,7 +467,7 @@ module P
       unless s.empty?
         scanner.next_token
 
-        ary << Atom.new( :symbol, s )
+        ary << Expr.string( s )
       end
 
       Expr.interp_string( *ary )
@@ -501,7 +501,7 @@ module P
             start = true
             ws = ''
           when t === :open_interp
-            ary << Atom.new( :symbol, s )  unless s.empty?
+            ary << Expr.string( s )  unless s.empty?
 
             scanner.position = ss.position
             scanner.next_token
@@ -538,7 +538,7 @@ module P
       unless s.empty?
         scanner.next_token
 
-        ary << Atom.new( :symbol, s )
+        ary << Expr.string( s )
       end
 
       if ary.empty?
@@ -598,8 +598,10 @@ module P
       value( :false )
       value( :nil )
 
-      value( :mult ) { |t| Atom.new( :glob, t ) }
-      value( :exp )  { |t| Atom.new( :double_glob, t ) }
+      value( :mult )      { |t| Expr.glob( t ) }
+      value( :exp )       { |t| Expr.double_glob( t ) }
+      value( :question )  { |t| Expr.optional( t ) }
+      value( :band )      { |t| Expr.amp( t ) }
 
       infix( :if,     2 ) { |t,left,right| Expr.cif( left, right ) }
       infix( :unless, 2 ) { |t,left,right| Expr.cun( left, right ) }
@@ -625,18 +627,16 @@ module P
       infix( :fn, '*', :right, block: true ) do |t,left,right|
         right = Expr.block( right ) unless right.block?
 
-        Expr.fn( seq_to_args( left ), right )
+        Expr.fn( left.to_params, right )
       end
 
       infix( :comma, 5 ) { |t,left,right| Expr.seq( left, right ) }
 
       infix( :colon, 6 ) do |t,left,right|
         if left.atom?
-          Expr.pair( Expr.symbol( left ), right )
-        elsif left.symbol?
-          Expr.pair( left, right )
+          Expr.pair( Expr.id( left ), right )
         else
-          raise "Expected left side of pair to be symbol, got #{left}"
+          raise "Expected left side of pair to be id, got #{left}"
         end
       end
 
@@ -690,9 +690,9 @@ module P
         raise "Expected ) got #{t}"  unless consume( :close_paren )
 
         if right
-          Expr.call( left, seq_to_params( right ) )
+          Expr.call( left, right.to_args )
         else
-          Expr.call( left, Expr.params )
+          Expr.call( left, Expr.args )
         end
       end
 
@@ -720,25 +720,13 @@ module P
         Expr.list( *(expr || Expr.seq).flatten.list )
       end
 
-  #   prefix( :div ) do |t|
-  #     s = ""
-
-  #     until consume( :div )
-  #       raise "Unterminated regex"  if top === :end
-
-  #       s << consume( top ).value
-  #     end
-
-  #     Atom.new( :regex, s )
-  #   end
-
       prefix( :fn ) do |t|
         if top === :newline && parse_line_separator
-          Expr.fn( Expr.args, parse_block( t.indent ) )
+          Expr.fn( Expr.params, parse_block( t.indent ) )
         elsif expr = parse_disjoint
-          Expr.fn( Expr.args, Expr.block( expr ) )
+          Expr.fn( Expr.params, Expr.block( expr ) )
         else
-          Expr.fn( Expr.args, Expr.block )
+          Expr.fn( Expr.params, Expr.block )
         end
       end
 
@@ -746,7 +734,7 @@ module P
       prefix( :bnot, 18 )
 
       postfix( :not, 19, :right ) do |t,left|
-        SendExpr.new( left, Expr.id( '!' ), Expr.params )
+        SendExpr.new( left, Expr.id( '!' ), Expr.args )
       end
 
       infix( :dot, 19 ) do |t,left,right|
@@ -757,7 +745,7 @@ module P
         if right.call?
           SendExpr.new( left, *right.list )
         else
-          SendExpr.new( left, right, Expr.params )
+          SendExpr.new( left, right, Expr.args )
         end
       end
 

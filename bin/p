@@ -65,7 +65,7 @@ def continue_read( line )
         tree = P.parse( line )
         if OPTS[:evaluate]
           if o = tree.evaluate( ENVIRONMENT )
-            puts o.to_s
+            puts o.inspect
           end
         else
           puts tree
@@ -96,7 +96,7 @@ def read
         tree = P.parse( line )
         if OPTS[:evaluate]
           if o = tree.evaluate( ENVIRONMENT )
-            puts o.to_s
+            puts o.inspect
           end
         else
           puts tree

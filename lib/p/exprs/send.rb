@@ -5,7 +5,7 @@ module P
     def evaluate( environment )
       obj  = list[0].evaluate( environment )
       msg  = list[1].to_sym
-      args = list[2].evaluate( environment )
+      args = list[2].list.map { |exp| exp.evaluate( environment ) }
 
       obj.p_send( msg, *args )   # should pass environment?
     end

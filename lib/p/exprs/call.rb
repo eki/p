@@ -5,7 +5,7 @@ module P
 
     def evaluate( environment )
       o = environment.get( String.new( left.value ) )
-      o.call( right.list )
+      o.call( right )
     end
 
   end

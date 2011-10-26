@@ -3,12 +3,20 @@ module P
 
   class IdExpr < Atom
     def initialize( value )
-      @value = value.respond_to?( :value ) ? value.value : value
+      @value = case
+        when value.kind_of?( ::String )  then value
+        when value.token?                then value.value
+        when value.id?                   then value.value
+        when value.number?               then value.to_s
+      end
     end
 
     def evaluate( environment )
-      o = environment.get( String.new( value ) )
-      o.call
+      if o = environment.get( String.new( value ) )
+        o.call
+      else
+        Nil.new
+      end
     end
 
     def to_s

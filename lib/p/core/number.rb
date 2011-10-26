@@ -10,16 +10,23 @@ module P
 
     def p_send( m, *args )
       case m.to_sym
-        when :to_s        then String.new( n.to_s )
         when :numerator   then Number.new( @n.numerator )
         when :denominator then Number.new( @n.denominator )
         when :+
           Number.new( n + args.first.to_r )
+        when :-
+          Number.new( n - args.first.to_r )
+        when :*
+          Number.new( n * args.first.to_r )
+        when :/
+          Number.new( n / args.first.to_r )
+        when :%
+          Number.new( n % args.first.to_r )
         when :==
           a = args.first
           Boolean.for( a.kind_of?( Number ) ? n == a.to_r : false )
 
-        else Nil.new
+        else super
       end 
     end
 

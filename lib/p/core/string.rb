@@ -33,7 +33,7 @@ module P
     end
 
     def to_s
-      inspect
+      r_string
     end
 
   end
