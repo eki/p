@@ -4,7 +4,21 @@ $:.push( File.expand_path( File.dirname( __FILE__ ) ) + '/../lib' )
 
 require 'readline'
 require 'yaml'
+require 'optparse'
 require 'p'
+
+
+OPTS = { evaluate: true }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: p [options]"
+
+  opts.on( "-e", "--[no-]evaluate", "Evaluate expressions" ) do |v|
+    OPTS[:evaluate] = v
+  end
+
+end.parse!
+
 
 ENVIRONMENT = P::Environment.new
 
@@ -49,8 +63,12 @@ def continue_read( line )
     begin
       if next_line.empty?
         tree = P.parse( line )
-        if o = tree.evaluate( ENVIRONMENT )
-          puts o.to_s
+        if OPTS[:evaluate]
+          if o = tree.evaluate( ENVIRONMENT )
+            puts o.to_s
+          end
+        else
+          puts tree
         end
         break
       end
@@ -76,8 +94,12 @@ def read
         continue_read( line )
       else
         tree = P.parse( line )
-        if o = tree.evaluate( ENVIRONMENT )
-          puts o.to_s
+        if OPTS[:evaluate]
+          if o = tree.evaluate( ENVIRONMENT )
+            puts o.to_s
+          end
+        else
+          puts tree
         end
       end
     rescue P::NewlineExpectedError => e

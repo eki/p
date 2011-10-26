@@ -12,3 +12,7 @@ task :p do
   exec "bin/p"
 end
 
+task :q do
+  exec "bin/p --no-evaluate"
+end
+
