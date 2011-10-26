@@ -1,7 +1,7 @@
 
 module P
 
-  class String
+  class String < Object
     attr_reader :r_string
 
     def initialize( r_string='' )
@@ -32,6 +32,9 @@ module P
       %Q("#{r_string}")
     end
 
+    def to_s
+      inspect
+    end
 
   end
 

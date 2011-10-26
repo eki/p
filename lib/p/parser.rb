@@ -70,12 +70,14 @@ module P
     end
 
     def value( name, &block )
-      block ||= lambda { |t| Atom.new( t.name, t ) }
+      block ||= lambda { |t| Expr.send( t.name, t ) }
       set[:value][name] = Rule.new( name, &block )
     end
 
     def infix( name, prec, assoc=:left, opts={}, &block )
-      block ||= lambda { |t,left,right| Expr.new( t.name, left, right ) }
+      block ||= lambda do |t,left,right| 
+        Expr.send( t.name, left, right )
+      end
       set[:infix][name] = Rule.new( name, prec, assoc, opts, &block )
     end
 
@@ -91,11 +93,11 @@ module P
 
       if op = opts.delete( :op )
         infix( :"#{op}_#{name}", prec, assoc, opts ) do |t, left, right|
-          Expr.new( name, left, Expr.new( op, left, right ) )
+          Expr.send( name, left, Expr.send( op, left, right ) )
         end
       else
         infix( name, prec, assoc, opts ) do |t, left, right|
-          Expr.new( name, left, right )
+          Expr.send( name, left, right )
         end
       end
     end
@@ -103,7 +105,7 @@ module P
     def prefix( name, prec=0, assoc=:left, opts={}, &block )
       op = opts.delete( :op )
       block ||= lambda do |t|
-        Expr.new( op || t.name, 
+        Expr.send( op || t.name, 
           parse_expression( nil, Rule.new( name, prec, assoc, opts ) ) )
       end
 
@@ -156,9 +158,9 @@ module P
         blocks << parse_block  until top === :end
 
         if blocks.length > 1
-          Expr.new( :program, Expr.new( :block, *blocks ) )
+          Expr.program( Expr.block( *blocks ) )
         else
-          Expr.new( :program, blocks.first )
+          Expr.program( blocks.first )
         end
       else
         raise "Missing start token!"
@@ -171,7 +173,7 @@ module P
       indent = top.indent
 
       if expr = parse_disjoint
-        block = [:block, expr]
+        block = [expr]
       else
         raise "Failed to parse_block at #{top.name}:#{top}"
       end
@@ -180,13 +182,13 @@ module P
         if top.indent == indent
           block << parse_disjoint
         elsif top.indent < indent
-          return Expr.new( *block )
+          return Expr.block( *block )
         elsif top.indent > indent
           block << parse_block
         end
       end
 
-      Expr.new( *block )
+      Expr.block( *block )
     end
 
     DISJOINT = {
@@ -219,7 +221,7 @@ module P
       case exprs.length
         when 0  then false
         when 1  then exprs.first
-        else         Expr.new( :disjoint, *exprs )
+        else         Expr.disjoint( *exprs )
       end
     end
 
@@ -262,7 +264,7 @@ module P
         if parse_line_separator
           parse_block( indent )  or raise "Else without properly indented block"
         elsif e = parse_disjoint
-          Expr.new( :block, e )
+          Expr.block( e )
         end
       end
     end
@@ -297,7 +299,7 @@ module P
             if block_given?
               yield( token, condition, block )
             else
-              Expr.new( token.name, condition, block )
+              Expr.send( token.name, condition, block )
             end
           else
             raise "Error: #{statement} statement without block"
@@ -356,7 +358,7 @@ module P
 
       consume( :double_quote )
 
-      Expr.new( :interp_string, *ary )
+      Expr.interp_string( *ary )
     end
 
     def parse_uninterpolated_string
@@ -468,7 +470,7 @@ module P
         ary << Atom.new( :symbol, s )
       end
 
-      Expr.new( :interp_string, *ary )
+      Expr.interp_string( *ary )
     end
 
     def parse_triple_prefix_string
@@ -543,7 +545,7 @@ module P
         raise "Expected block for ::: prefix string"
       end
 
-      Expr.new( :interp_string, *ary )
+      Expr.interp_string( *ary )
     end
 
     def consume( token )
@@ -559,9 +561,9 @@ module P
 
     def seq_to_params( seq )
       if seq.seq?
-        Expr.new( :params, *seq.flatten.list )
+        Expr.params( *seq.flatten.list )
       else
-        Expr.new( :params, seq )
+        Expr.params( seq )
       end
     end
 
@@ -569,7 +571,7 @@ module P
       if seq.seq?
         s = seq.flatten
       else
-        s = Expr.new( :seq, seq )
+        s = Expr.seq( seq )
       end
 
       if bad = s.list.find { |v| ! v.id? }
@@ -577,7 +579,7 @@ module P
         #raise "Arg list may only contain ids: #{s}:#{bad}"
       end
 
-      Expr.new( :args, *s.list )
+      Expr.args( *s.list )
     end
 
     def params_to_args( params )
@@ -585,7 +587,7 @@ module P
         raise "Arg list may only contain ids: #{s}:#{bad}"
       end
 
-      Expr.new( :args, *params.list )
+      Expr.args( *params.list )
     end
 
 
@@ -599,11 +601,11 @@ module P
       value( :mult ) { |t| Atom.new( :glob, t ) }
       value( :exp )  { |t| Atom.new( :double_glob, t ) }
 
-      infix( :if,     2 ) { |t,left,right| Expr.new( :cif, left, right ) }
-      infix( :unless, 2 ) { |t,left,right| Expr.new( :cun, left, right ) }
+      infix( :if,     2 ) { |t,left,right| Expr.cif( left, right ) }
+      infix( :unless, 2 ) { |t,left,right| Expr.cun( left, right ) }
 
-      infix( :while,  2 ) { |t,left,right| Expr.new( :cwhile, left, right ) }
-      infix( :until,  2 ) { |t,left,right| Expr.new( :cuntil, left, right ) }
+      infix( :while,  2 ) { |t,left,right| Expr.cwhile( left, right ) }
+      infix( :until,  2 ) { |t,left,right| Expr.cuntil( left, right ) }
 
       assign( name: :assign )
       assign( name: :single_assign )
@@ -621,18 +623,18 @@ module P
       assign( op: :bnot   )
 
       infix( :fn, '*', :right, block: true ) do |t,left,right|
-        right = Expr.new( :block, right ) unless right.block?
+        right = Expr.block( right ) unless right.block?
 
-        Expr.new( :fn, seq_to_args( left ), right )
+        Expr.fn( seq_to_args( left ), right )
       end
 
-      infix( :comma, 5 ) { |t,left,right| Expr.new( :seq, left, right ) }
+      infix( :comma, 5 ) { |t,left,right| Expr.seq( left, right ) }
 
       infix( :colon, 6 ) do |t,left,right|
         if left.atom?
-          Expr.new( :pair, Expr.new( :symbol, left ), right )
+          Expr.pair( Expr.symbol( left ), right )
         elsif left.symbol?
-          Expr.new( :pair, left, right )
+          Expr.pair( left, right )
         else
           raise "Expected left side of pair to be symbol, got #{left}"
         end
@@ -641,7 +643,7 @@ module P
       infix( :question, 7 ) do |t,left,right|
         if consume( :colon )
           if e = parse_disjoint( Rule.new( :eif, 4 ) )
-            Expr.new( :if, left, right, e )
+            Expr.if( left, right, e )
           else
             raise "Couldn't find else conditional to complete ?:"
           end
@@ -688,9 +690,9 @@ module P
         raise "Expected ) got #{t}"  unless consume( :close_paren )
 
         if right
-          Expr.new( :call, left, seq_to_params( right ) )
+          Expr.call( left, seq_to_params( right ) )
         else
-          Expr.new( :call, left, Expr.new( :params ) )
+          Expr.call( left, Expr.params )
         end
       end
 
@@ -699,7 +701,7 @@ module P
 
         raise "Expected ) got #{t}"  unless consume( :close_paren )
 
-        expr || Expr.new( :seq )
+        expr || Expr.seq
       end
 
       prefix( :open_curly ) do |t|
@@ -707,7 +709,7 @@ module P
 
         raise "Expected } got #{t}"  unless consume( :close_curly )
 
-        Expr.new( :map, *(expr || Expr.new( :seq )).flatten.list )
+        Expr.map( *(expr || Expr.seq).flatten.list )
       end
 
       prefix( :open_square ) do |t|
@@ -715,7 +717,7 @@ module P
 
         raise "Expected ] got #{t}"  unless consume( :close_square )
 
-        Expr.new( :list, *(expr || Expr.new( :seq )).flatten.list )
+        Expr.list( *(expr || Expr.seq).flatten.list )
       end
 
   #   prefix( :div ) do |t|
@@ -732,11 +734,11 @@ module P
 
       prefix( :fn ) do |t|
         if top === :newline && parse_line_separator
-          Expr.new( :fn, Expr.new( :args ), parse_block( t.indent ) )
+          Expr.fn( Expr.args, parse_block( t.indent ) )
         elsif expr = parse_disjoint
-          Expr.new( :fn, Expr.new( :args ), Expr.new( :block, expr ) )
+          Expr.fn( Expr.args, Expr.block( expr ) )
         else
-          Expr.new( :fn, Expr.new( :args ), Expr.new( :block ) )
+          Expr.fn( Expr.args, Expr.block )
         end
       end
 
@@ -744,7 +746,7 @@ module P
       prefix( :bnot, 18 )
 
       postfix( :not, 19, :right ) do |t,left|
-        Expr.new( :send, left, Atom.new( :id, '!' ), Expr.new( :params ))
+        SendExpr.new( left, Expr.id( '!' ), Expr.params )
       end
 
       infix( :dot, 19 ) do |t,left,right|
@@ -753,9 +755,9 @@ module P
         end
 
         if right.call?
-          Expr.new( :send, left, *right.list )
+          SendExpr.new( left, *right.list )
         else
-          Expr.new( :send, left, right, Expr.new( :params ) )
+          SendExpr.new( left, right, Expr.params )
         end
       end
 
@@ -764,16 +766,16 @@ module P
       prefix( :if ) do |t|
         parse_statement( :if, t ) do |t, condition, block|
           if e = parse_else( t.indent )
-            Expr.new( :if, condition, block, e )
+            Expr.if( condition, block, e )
           else
-            Expr.new( :if, condition, block )
+            Expr.if( condition, block )
           end
         end
       end
 
       prefix( :unless ) do |t|
         parse_statement( :unless, t ) do |t,condition,block|
-          Expr.new( :unless, condition, block )
+          Expr.unless( condition, block )
         end
       end
 

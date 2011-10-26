@@ -4,8 +4,12 @@ module P
   class Expr
     attr_reader :name, :list
 
-    def initialize( name, *list )
-      @name, @list = name, list
+    def initialize( *list )
+      @list = list
+    end
+
+    def name
+      self.class.type
     end
 
     def to_s
@@ -14,6 +18,18 @@ module P
 
     def inspect
       to_s
+    end
+
+    def left
+      list[0]
+    end
+
+    def right
+      list[1]
+    end
+
+    def first
+      list[0]
     end
 
     def method_missing( m, *args, &block )
@@ -28,6 +44,14 @@ module P
       Expr.new( name, *list.map { |a| a.name == name ? a.list : a }.flatten )
     end
 
+    def reduce?
+      false
+    end
+
+    def reduce
+      self
+    end
+
     def pp( indent=0 )
       i, s = ' ' * indent, nil
 
@@ -40,20 +64,52 @@ module P
       indent == 0 ? puts( s ) : s
     end
 
-    def evaluate
-      case name
-        when :program then list.first.evaluate
-        when :block   then list.last.evaluate
-        else pp
+    def self.type
+      name.gsub( /^.*::/, '' ).
+           gsub( /([a-z])([A-Z]+)/, '\1_\2' ).downcase.
+           gsub( /_expr/, '' ).to_sym
+    end
+
+    def self.inherited( base )
+      (@all_subclasses ||= {})[base.type] = base
+    end
+
+    def self.method_missing( m, *args, &block )
+      if (@all_subclasses || {}).key?( m )
+        @all_subclasses[m].new( *args )
+      else
+        super
       end
+    end
+  end
+
+  class ReducibleExpr < Expr
+    def reduce?
+      true
+    end
+
+    def reduce
+      self.class.new( *list.map { |e| e.reduce? ? e.reduce : e } )
+    end
+
+    def evaluate( environment )
+      reduce.evaluate( environment )
+    end
+
+    def self.inherited( base )
+      Expr.inherited( base )
     end
   end
 
   class Atom < Expr
     attr_reader :value
 
-    def initialize( name, value )
-      @name, @value, @list = name, value, nil
+    def initialize( value )
+      @value = value
+    end
+
+    def name
+      self.class.type
     end
 
     def to_s
@@ -67,11 +123,7 @@ module P
       indent == 0 ? puts( s ) : s
     end
 
-    def evaluate
-      case name
-        when :number then Number.new( value.value )
-        else pp
-      end
+    def evaluate( environment )
     end
 
     def flatten
@@ -86,6 +138,32 @@ module P
       true
     end
 
+    def self.inherited( base )
+      Expr.inherited( base )
+    end
+  end
+
+  class SendableOperatorExpr < ReducibleExpr
+    def self.op( n )
+      @op = n
+    end
+
+    def op
+      self.class.instance_variable_get( '@op' )
+    end
+
+    def reduce
+      SendExpr.new( 
+        list[0].reduce, Expr.id( op ), Expr.params( list[1].reduce ) )
+    end
+
+    def to_s
+      "(#{op} #{left} #{right})"
+    end
+
+    def self.inherited( base )
+      Expr.inherited( base )
+    end
   end
 
 end

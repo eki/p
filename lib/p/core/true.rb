@@ -1,7 +1,7 @@
 
 module P
 
-  class True
+  class True < Object
 
     def p_send( m, *args )
       case m
@@ -19,7 +19,9 @@ module P
       'true'
     end
 
-
+    def ==( o )
+      o.kind_of?( True ) 
+    end
 
   end
 

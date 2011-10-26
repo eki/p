@@ -6,6 +6,8 @@ require 'readline'
 require 'yaml'
 require 'p'
 
+ENVIRONMENT = P::Environment.new
+
 def p_dir
   d = "#{ENV['HOME']}/.p"
 
@@ -47,7 +49,7 @@ def continue_read( line )
     begin
       if next_line.empty?
         tree = P.parse( line )
-        if o = tree.evaluate
+        if o = tree.evaluate( ENVIRONMENT )
           puts o.to_s
         end
         break
@@ -74,7 +76,7 @@ def read
         continue_read( line )
       else
         tree = P.parse( line )
-        if o = tree.evaluate
+        if o = tree.evaluate( ENVIRONMENT )
           puts o.to_s
         end
       end
