@@ -19,7 +19,7 @@ module P
   class Number < Object
     attr_reader :value
 
-    MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**, :~, :&, :|, :^, :<<, :>>]
+    MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**, :&, :|, :^, :<<, :>>]
 
     COMP_OPS = [:<, :>, :<=, :>=]
 
@@ -36,6 +36,7 @@ module P
     end
 
     p_receive( :'number?' ) { |env| True.new }
+    p_receive( :~ )         { |env| P.number( ~ value ) }
 
     def to_s
       value.to_s

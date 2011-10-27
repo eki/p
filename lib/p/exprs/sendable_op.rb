@@ -10,7 +10,6 @@ module P
 
     exp:    '**',
 
-    bnot:   '~',
     band:   '&',
     bor:    '|',
     xor:    '^',
