@@ -709,7 +709,7 @@ module P
 
         raise "Expected } got #{t}"  unless consume( :close_curly )
 
-        Expr.map( *(expr || Expr.seq).flatten.list )
+        Expr.map( Expr.seq( expr ).flatten.list )
       end
 
       prefix( :open_square ) do |t|

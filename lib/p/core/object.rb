@@ -48,6 +48,14 @@ module P
     def call( args=[], environment=Environment.top )
       return self
     end
+
+    def hash
+      instance_variables.map { |iv| instance_variable_get( iv ) }.hash
+    end
+
+    def eql?( o )
+      self == o
+    end
   end
 
 end
