@@ -19,11 +19,19 @@ module P
   class Number < Object
     attr_reader :value
 
-    MATH_OPS = [:+, :-, :*, :/, :%]
+    MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**, :~, :&, :|, :^, :<<, :>>]
+
+    COMP_OPS = [:<, :>]
 
     MATH_OPS.each do |op|
       p_receive( op, "(n)" ) do |env|
         P.number( value.send( op, env.get( 'n' ).value ) )
+      end
+    end
+
+    COMP_OPS.each do |op|
+      p_receive( op, "(n)" ) do |env|
+        Boolean.for( value.send( op, env.get( 'n' ).value ) )
       end
     end
 

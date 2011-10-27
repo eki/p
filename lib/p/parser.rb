@@ -102,11 +102,11 @@ module P
       end
     end
 
-    def prefix( name, prec=0, assoc=:left, opts={}, &block )
+    def prefix( name, prec=0, opts={}, &block )
       op = opts.delete( :op )
       block ||= lambda do |t|
         Expr.send( op || t.name, 
-          parse_expression( nil, Rule.new( name, prec, assoc, opts ) ) )
+          parse_expression( nil, Rule.new( name, prec, :left, opts ) ) )
       end
 
       set[:prefix][name] = Rule.new( name, &block )
