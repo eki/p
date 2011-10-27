@@ -8,6 +8,25 @@ module P
       @parent = parent
 
       @bindings = []
+
+      bind( String.new( 'environment' ), self )
+      bind( String.new( 'defined?' ), P.parse( '(name) -> environment.defined?( name )' ).first.first.evaluate( self ) ) # is this technically correct?
+    end
+
+    p_receive( :bind, "(name,value)" ) do |env|
+      bind( env.get( 'name' ), env.get( 'value' ) )
+    end
+
+    p_receive( :set, "(name,value)" ) do |env|
+      set( env.get( 'name' ), env.get( 'value' ) )
+    end
+
+    p_receive( :get, "(name)" ) do |env|
+      get( env.get( 'name' ) )
+    end
+
+    p_receive( :defined?, "(name)" ) do |env|
+      Boolean.for( self.defined?( env.get( 'name' ) ) )
     end
 
     def bind( name, value )
@@ -60,7 +79,8 @@ module P
     end
 
     def inspect
-      "(#{bindings.map { |b| b.inspect }.join( ', ' )})"
+      bs = bindings.reject { |b| b.name === 'environment' }
+      "(#{bs.map { |b| b.inspect }.join( ', ' )})"
     end
 
     def to_s
