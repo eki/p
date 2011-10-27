@@ -29,6 +29,10 @@ module P
       Boolean.for( self.defined?( env.get( 'name' ) ) )
     end
 
+    p_receive( :bindings ) do |env|
+      List.new( *bindings.reject { |b| b.name === 'environment' } )
+    end
+
     def bind( name, value )
       if bindings.any? { |b| b.name === name }
         raise "Error: #{name} already bound locally."

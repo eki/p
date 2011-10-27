@@ -19,10 +19,6 @@ module P
   class Number < Object
     attr_reader :value
 
-    def initialize( n )
-      @n = Rational( n )
-    end
-
     MATH_OPS = [:+, :-, :*, :/, :%]
 
     MATH_OPS.each do |op|

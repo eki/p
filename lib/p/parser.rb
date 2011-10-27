@@ -717,7 +717,7 @@ module P
 
         raise "Expected ] got #{t}"  unless consume( :close_square )
 
-        Expr.list( *(expr || Expr.seq).flatten.list )
+        Expr.list( (expr || Expr.seq).flatten.list )
       end
 
       prefix( :fn ) do |t|
