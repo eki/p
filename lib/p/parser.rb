@@ -82,7 +82,7 @@ module P
     end
 
     def postfix( name, prec, assoc=:left, opts={}, &block )
-      block ||= lambda { |t,left| Expr.new( t.name, left ) }
+      block ||= lambda { |t,left| Expr.send( t.name, left ) }
       set[:postfix][name] = Rule.new( name, prec, assoc, opts, &block )
     end
 
