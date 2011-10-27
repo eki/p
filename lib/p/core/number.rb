@@ -19,7 +19,7 @@ module P
   class Number < Object
     attr_reader :value
 
-    MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**, :&, :|, :^, :<<, :>>]
+    MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**]
 
     COMP_OPS = [:<, :>, :<=, :>=]
 
@@ -35,8 +35,11 @@ module P
       end
     end
 
-    p_receive( :'number?' ) { |env| True.new }
-    p_receive( :~ )         { |env| P.number( ~ value ) }
+    p_receive( :'number?' )      { |env| True.new }
+    p_receive( :'to_float'  )    { |env| Float.new( value ) }
+    p_receive( :'to_integer'  )  { |env| Integer.new( value ) }
+    p_receive( :'to_ratio'  )    { |env| Ratio.new( value ) }
+    p_receive( :'to_rational'  ) { |env| P.number( Ratio.new( value ) ) }
 
     def to_s
       value.to_s
@@ -56,8 +59,17 @@ module P
       @value = value.to_i
     end
 
+    BITWISE_OPS = [:&, :|, :^, :<<, :>>]
+
+    BITWISE_OPS.each do |op|
+      p_receive( op, "(n)" ) do |env|
+        P.number( value.send( op, env.get( 'n' ).value ) )
+      end
+    end
+
     p_receive( :'integer?' )  { |env| True.new }
     p_receive( :'rational?' ) { |env| True.new }
+    p_receive( :~ )           { |env| P.number( ~ value ) }
   end
 
   class Ratio < Number
