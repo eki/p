@@ -159,9 +159,6 @@ module P
     add( :bor,                /[|]/,                                   )
     add( :xor,                /\^/,                                    )
 
-    add( :triple_colon,       /:::/,                                   )
-    add( :double_colon,       /::/,                                    )
-
     add( :question,           /[?]/,                                   )
     add( :colon,              /:/,                                     )
 
