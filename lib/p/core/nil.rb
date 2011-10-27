@@ -2,17 +2,6 @@
 module P
 
   class Nil < Object
-
-    def p_send( m, *args )
-      case m
-        when :to_s        then String.new( 'nil' )
-        when :==
-          Boolean.for( self == args.first )
-
-        else super
-      end 
-    end
-
     def ==( o )
       o.kind_of?( Nil ) 
     end
@@ -24,7 +13,6 @@ module P
     def inspect
       "nil"
     end
-
   end
 
 end

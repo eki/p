@@ -3,20 +3,20 @@ module P
 
   class ArgsExpr < Expr
 
-    def bind( parameters, environment )
+    def bind( parameters, environment, to_environment=environment )
       if by_name?
-        bind_by_name( parameters, environment )
+        bind_by_name( parameters, environment, to_environment )
       else
-        bind_by_position( parameters, environment )
+        bind_by_position( parameters, environment, to_environment )
       end
     end
 
-    def bind_by_position( parameters, environment )
+    def bind_by_position( parameters, environment, to_env )
       parameters.each_with_index do |p,i|
         if arg = list[i]
-          environment.bind( p.name, arg.evaluate( environment ) )
+          to_env.bind( p.name, arg.evaluate( environment ) )
         elsif p.default?
-          environment.bind( p.name, p.default.evaluate( environment ) )
+          to_env.bind( p.name, p.default.evaluate( environment ) )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end
@@ -27,12 +27,12 @@ module P
       ! by_name?
     end
 
-    def bind_by_name( parameters, environment )
+    def bind_by_name( parameters, environment, to_env )
       parameters.each do |p,i|
         if arg = list.find { |pair| p.name === pair.left.value }
-          environment.bind( p.name, arg.right.evaluate( environment ) )
+          to_env.bind( p.name, arg.right.evaluate( environment ) )
         elsif p.default?
-          environment.bind( p.name, p.default.evaluate( environment ) )
+          to_env.bind( p.name, p.default.evaluate( environment ) )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end

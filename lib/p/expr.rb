@@ -162,7 +162,7 @@ module P
 
     def reduce
       SendExpr.new( 
-        list[0].reduce, Expr.id( op ), Expr.seq( list[1].reduce ) )
+        list[0].reduce, Expr.id( op ), Expr.seq( list[1].reduce ).to_args )
     end
 
     def to_s

@@ -9,17 +9,10 @@ module P
       @name, @value, @mutable = name, value, !! mutable
     end
 
-    def p_send( m, *args )
-      case m
-        when :to_s         then String.new( inspect )
-        when :name         then name
-        when :value        then value
-        when :'mutable?'   then Boolean.for( mutable? )
-        when :'immutable?' then Boolean.for( immutable? )
-
-        else super
-      end 
-    end
+    p_receive( :name )         { |env| name }
+    p_receive( :value )        { |env| value }
+    p_receive( :'mutable?' )   { |env| Boolean.for( mutable? ) }
+    p_receive( :'immutable?' ) { |env| Boolean.for( immutable? ) }
 
     def mutable?
       @mutable
@@ -31,6 +24,10 @@ module P
 
     def inspect
       "#{name}#{mutable? ? ' =' : ':'} #{value}"
+    end
+
+    def to_s
+      inspect
     end
   end
 

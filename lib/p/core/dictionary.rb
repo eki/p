@@ -9,15 +9,6 @@ module P
       @map = Hash.new( Nil.new )
     end
 
-    def p_send( m, *args )
-      case m
-        when :to_s        then String.new( @map.inspect )
-
-        else super
-      end 
-    end
-
-
   end
 
 end

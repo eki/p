@@ -25,17 +25,13 @@ module P
 
     MATH_OPS = [:+, :-, :*, :/, :%]
 
-    def p_send( m, *args )
-      if MATH_OPS.include?( m )
-        return P.number( value.send( m, args.first.value ) )
-      end
-
-      case m.to_sym
-        when :'number?'  then True.new
-
-        else super
+    MATH_OPS.each do |op|
+      p_receive( op, "(n)" ) do |env|
+        P.number( value.send( op, env.get( 'n' ).value ) )
       end
     end
+
+    p_receive( :'number?' ) { |env| True.new }
 
     def to_s
       value.to_s
@@ -55,14 +51,8 @@ module P
       @value = value.to_i
     end
 
-    def p_send( m, *args )
-      case m.to_sym
-        when :'integer?'   then True.new
-        when :'rational?'  then True.new
-
-        else super
-      end
-    end
+    p_receive( :'integer?' )  { |env| True.new }
+    p_receive( :'rational?' ) { |env| True.new }
   end
 
   class Ratio < Number
@@ -78,16 +68,10 @@ module P
       value.denominator
     end
 
-    def p_send( m, *args )
-      case m.to_sym
-        when :'ratio?'     then True.new
-        when :'rational?'  then True.new
-        when :numerator    then P.number( numerator )
-        when :denominator  then P.number( denominator )
-
-        else super
-      end
-    end
+    p_receive( :'ratio?' )    { |env| True.new }
+    p_receive( :'rational?' ) { |env| True.new }
+    p_receive( :numerator )   { |env| P.number( numerator ) }
+    p_receive( :denominator ) { |env| P.number( denominator ) }
   end
 
   class Float < Number
@@ -95,13 +79,7 @@ module P
       @value = value.to_f
     end
 
-    def p_send( m, *args )
-      case m.to_sym
-        when :'float?'  then True.new
-
-        else super
-      end
-    end
+    p_receive( :'float?' )    { |env| True.new }
   end
 
 end

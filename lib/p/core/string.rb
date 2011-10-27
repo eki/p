@@ -8,13 +8,7 @@ module P
       @value = value.to_s
     end
 
-    def p_send( m, *args )
-      case m.to_sym
-        when :length then P.number( value.length )
-
-        else super
-      end 
-    end
+    p_receive( :length ) { |env| P.number( value.length ) }
 
     def ===( o )
       o.kind_of?( String ) ? o.value == value : o.to_s == value
