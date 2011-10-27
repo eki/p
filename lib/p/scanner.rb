@@ -119,6 +119,9 @@ module P
 
     add( :comp,               /[<][=][>]/,                             )
 
+    add( :or_assign,          /[|][|][=]/,                             )
+    add( :and_assign,         /[&][&][=]/,                             )
+
     add( :exp,                /[*][*]/,                                )
     add( :single_assign,      /[:][=]/,                                )
     add( :gte,                /[>][=]/,                                )
@@ -139,9 +142,6 @@ module P
     add( :xor_assign,         /\^[=]/,                                 )
     add( :band_assign,        /[&][=]/,                                )
     add( :bnot_assign,        /[~][=]/,                                )
-
-    add( :or_assign,          /[|][|][=]/,                             )
-    add( :and_assign,         /[&][&][=]/,                             )
 
     add( :add,                /[+]/,                                   )
     add( :sub,                /[-]/,                                   )
