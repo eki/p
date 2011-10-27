@@ -21,7 +21,7 @@ module P
 
     MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**, :~, :&, :|, :^, :<<, :>>]
 
-    COMP_OPS = [:<, :>]
+    COMP_OPS = [:<, :>, :<=, :>=]
 
     MATH_OPS.each do |op|
       p_receive( op, "(n)" ) do |env|

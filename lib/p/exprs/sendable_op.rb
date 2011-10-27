@@ -21,7 +21,9 @@ module P
     comp:   '<=>',
     eq:     '==',
     gt:     '>',
-    lt:     '<'
+    lt:     '<',
+    gte:    '>=',
+    lte:    '<='
   }
 
   SENDABLE.each do |k,v|
