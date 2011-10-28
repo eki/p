@@ -8,6 +8,10 @@ module P
       @value = value.to_s
     end
 
+    def initialize_copy( original )
+      @value = original.value.dup
+    end
+
     p_receive( :length ) { |env| P.number( value.length ) }
 
     def ===( o )

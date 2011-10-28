@@ -9,6 +9,11 @@ module P
       @name, @value, @mutable = name, value, !! mutable
     end
 
+    def intialize_copy( original )
+      @name, @value = original.name.dup, original.value.dup
+      @mutable = original.mutable?
+    end
+
     p_receive( :name )         { |env| name }
     p_receive( :value )        { |env| value }
     p_receive( :'mutable?' )   { |env| Boolean.for( mutable? ) }

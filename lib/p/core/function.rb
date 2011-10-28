@@ -99,5 +99,34 @@ module P
     end
   end
 
+  class NativeFunction < Object
+    attr_reader :parameters, :block
+
+    def initialize( params_string="", &block )
+      if params_string
+        params = P.parse( params_string ).first.first.to_params
+      else
+        params = Expr.params
+      end
+
+      @parameters = params.evaluate( nil )  # eliminate the arg to params.evaluate
+      @block = block
+    end
+
+    def call( args=Expr.args, env=nil )
+      env = Environment.new
+      args.bind( parameters, env )
+      block[env]
+    end
+
+    def inspect
+      "(#{parameters.map { |p| p.inspect }.join( ', ' )}) -> <native code>"
+    end
+
+    def to_s
+      inspect
+    end
+  end
+
 end
 

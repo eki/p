@@ -11,6 +11,8 @@ module P
 
       bind( String.new( 'environment' ), self )
       bind( String.new( 'defined?' ), P.parse( '(name) -> environment.defined?( name )' ).first.first.evaluate( self ) ) # is this technically correct?
+
+      bind( String.new( 'puts' ), FN[:puts] )
     end
 
     p_receive( :bind, "(name,value)" ) do |env|

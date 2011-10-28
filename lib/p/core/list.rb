@@ -8,6 +8,10 @@ module P
       @value = *objs
     end
 
+    def initialize_copy( original )
+      @value = original.value.map { |o| o.dup }
+    end
+
     p_receive( :'list?' )  { |env| True.new }
     p_receive( :'first' )  { |env| value.first }
     p_receive( :'rest' )   { |env| List.new( *value[1..(value.length)] ) }
