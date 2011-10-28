@@ -16,3 +16,7 @@ task :q do
   exec "bin/p --no-evaluate"
 end
 
+task :r do
+  exec "bin/p --reduce"
+end
+

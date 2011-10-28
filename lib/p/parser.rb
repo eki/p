@@ -697,9 +697,14 @@ module P
       end
 
       prefix( :open_paren ) do |t|
-        expr = parse_disjoint
+        if consume( :close_paren )
+          expr = nil
+        else
+          expr = parse_disjoint
 
-        raise "Expected ) got #{t}"  unless consume( :close_paren )
+          # I don't think it's possible to reach this line... (?)
+          raise "Expected ) got #{t}"  unless consume( :close_paren )
+        end
 
         expr || Expr.seq
       end

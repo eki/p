@@ -40,6 +40,10 @@ module P
       Expr.args( self )
     end
 
+    def to_seq
+      Expr.seq( self )
+    end
+
     def method_missing( m, *args, &block )
       if m.to_s =~ /(.*)\?$/
         name.to_s == $1

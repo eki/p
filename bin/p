@@ -17,6 +17,10 @@ OptionParser.new do |opts|
     OPTS[:evaluate] = v
   end
 
+  opts.on( "-r", "--reduce", "Parse and reduce expressions" ) do |v|
+    OPTS[:reduce] = v
+  end
+
 end.parse!
 
 
@@ -63,7 +67,10 @@ def continue_read( line )
     begin
       if next_line.empty?
         tree = P.parse( line )
-        if OPTS[:evaluate]
+        if OPTS[:reduce]
+          puts "calling reduce on tree #{tree}"
+          puts tree.reduce
+        elsif OPTS[:evaluate]
           if o = tree.evaluate( ENVIRONMENT )
             puts o.inspect
           end
@@ -94,7 +101,10 @@ def read
         continue_read( line )
       else
         tree = P.parse( line )
-        if OPTS[:evaluate]
+        if OPTS[:reduce]
+          puts "calling reduce on tree #{tree}"
+          puts tree.reduce
+        elsif OPTS[:evaluate]
           if o = tree.evaluate( ENVIRONMENT )
             puts o.inspect
           end
