@@ -2,17 +2,13 @@
 module P
 
   class Environment < Object
-    attr_reader :parent, :bindings
+    attr_reader   :bindings
+    attr_accessor :parent
 
     def initialize( parent=Environment.top )
       @parent = parent
 
       @bindings = []
-
-      bind( String.new( 'environment' ), self )
-      bind( String.new( 'defined?' ), P.parse( '(name) -> environment.defined?( name )' ).first.first.evaluate( self ) ) # is this technically correct?
-
-      bind( String.new( 'puts' ), FN[:puts] )
     end
 
     p_receive( :bind, "(name,value)" ) do |env|
@@ -53,6 +49,8 @@ module P
     def get( name )
       if binding = binding_for( name )
         binding.value
+      elsif name === 'environment'
+        self
       end
     end
 
@@ -76,7 +74,12 @@ module P
     end
 
     def self.top
-      @top ||= Environment.new( nil )   # need to populate with core bindings
+      return @top  if @top
+
+      @top = Environment.new( nil )
+      @top.bind( String.new( 'puts' ), FN[:puts] )
+      @top.bind( String.new( 'new' ), FN[:new] )
+      @top
     end
 
     def binding_for( name )

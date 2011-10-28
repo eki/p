@@ -15,5 +15,12 @@ module P
     Nil.new
   end
 
+  P.fn( :new, '(closure)' ) do |env|
+    c = env.get( 'closure' )
+    e = Environment.new
+    c.call( Expr.args, e )
+    o = PObject.new( e )
+  end
+
 end
 
