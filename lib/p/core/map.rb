@@ -16,8 +16,8 @@ module P
       value.length
     end
 
-    def get( key )
-      value[key] || P.nil
+    def []( key )
+      value[key]
     end
 
     def keys
@@ -36,9 +36,10 @@ module P
     receive( :keys )       { |env| P.list( *keys ) }
     receive( :values )     { |env| P.list( *values ) }
 
-    # temporary until [] notation is added
-
-    receive( :get, 'key' ) { |env| get( env[:key] ) }
+    receive( :[], 'key' ) do |env| 
+      obj = self[env[:key]]
+      obj ? obj : P.nil
+    end
 
     receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
@@ -49,6 +50,10 @@ module P
 
     def inspect
       value.inspect
+    end
+
+    def to_hash
+      value
     end
   end
 

@@ -16,6 +16,10 @@ module P
       value.last
     end
 
+    def []( index )
+      value[index]
+    end
+
     def empty?
       value.empty?
     end
@@ -34,16 +38,22 @@ module P
 
     receive( :list?, %q( () -> true ) )
 
-    receive( :first )  { |env| first }
-    receive( :rest )   { |env| rest }
-    receive( :last )   { |env| last }
-    receive( :empty? ) { |env| P.boolean( empty? ) }
-    receive( :length ) { |env| P.number( length ) }
+    receive( :first     ) { |env| first }
+    receive( :rest      ) { |env| rest }
+    receive( :last      ) { |env| last }
+    receive( :empty?    ) { |env| P.boolean( empty? ) }
+    receive( :length    ) { |env| P.number( length ) }
 
-    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :inspect   ) { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
 
-    receive( :to_list ) { |env| self }
+    receive( :to_list   ) { |env| self }
+
+    receive( :[], 'index' ) do |env| 
+      index = env[:index].r_send( :to_integer )
+      obj = self[index]
+      obj ? obj : P.nil
+    end
 
     def to_s
       value.to_s
@@ -51,6 +61,10 @@ module P
 
     def inspect
       value.inspect
+    end
+
+    def to_ary
+      value
     end
   end
 

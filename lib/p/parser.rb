@@ -717,6 +717,18 @@ module P
         Expr.map( Expr.seq( expr ).flatten.list )
       end
 
+      infix( :open_square, '*', :right, 
+        right_optional: :close_square ) do |t,left,right|
+
+        raise "Expected ] got #{t}"  unless consume( :close_square )
+
+        if right
+          SendExpr.new( left, Expr.id( '[]' ), right.to_args )
+        else
+          SendExpr.new( left, Expr.id( '[]' ), Expr.args )
+        end
+      end
+
       prefix( :open_square ) do |t|
         expr = parse_disjoint
 

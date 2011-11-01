@@ -4,8 +4,10 @@ module P
   class AssignExpr < Expr
     def reduce
       if left.send?
+        args = left.list[2].reduce.list + right.reduce.list
+
         SendExpr.new( left.list[0].reduce, Expr.id( "#{left.list[1]}=" ), 
-          Expr.args( right.reduce ) )
+          Expr.args( *args ) )
       else
         self
       end

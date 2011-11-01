@@ -12,6 +12,10 @@ module P
       %Q("#{value}")
     end
 
+    def to_str
+      value
+    end
+
     def to_s
       value
     end

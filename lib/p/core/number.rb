@@ -67,6 +67,10 @@ module P
       1 
     end
 
+    def to_int
+      value
+    end
+
     BITWISE_OPS = [:&, :|, :^, :<<, :>>]
 
     BITWISE_OPS.each do |op|
@@ -102,6 +106,10 @@ module P
 
     receive( :numerator )   { |env| P.number( numerator ) }
     receive( :denominator ) { |env| P.number( denominator ) }
+
+    def to_r
+      value
+    end
   end
 
   class Float < Number
@@ -110,6 +118,10 @@ module P
     end
 
     receive( :float?, %q( () -> true ) )
+
+    def to_f
+      value
+    end
   end
 
 end

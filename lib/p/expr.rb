@@ -143,7 +143,7 @@ module P
     end
 
     def list
-      self
+      [self]
     end
 
     def atom?
