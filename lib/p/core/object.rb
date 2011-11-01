@@ -206,6 +206,7 @@ module P
     end
 
     receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }
+    receive( :to_list   ) { |env| P.list( self ) }
 
     receive( :clone, 'f' ) do |env|
       f = env[:f]

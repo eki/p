@@ -28,6 +28,10 @@ module P
       value.length
     end
 
+    def each( &block )
+      value.each( &block )
+    end
+
     receive( :list?, %q( () -> true ) )
 
     receive( :first )  { |env| first }
@@ -38,6 +42,8 @@ module P
 
     receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
+
+    receive( :to_list ) { |env| self }
 
     def to_s
       value.to_s
