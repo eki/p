@@ -207,6 +207,7 @@ module P
 
     receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }
     receive( :to_list   ) { |env| P.list( self ) }
+    receive( :prototype ) { |env| prototype || P.nil }
 
     receive( :respond_to?, 'name' ) do |env|
       _get( env[:name] ) ? P.true : P.false
