@@ -159,7 +159,6 @@ module P
       bind( env[:name], env[:value] )
     end
 
-    receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
 
 

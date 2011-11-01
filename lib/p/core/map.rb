@@ -41,7 +41,6 @@ module P
       obj ? obj : P.nil
     end
 
-    receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
 
     def to_s

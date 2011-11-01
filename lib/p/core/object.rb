@@ -194,7 +194,7 @@ module P
     end
 
     def inspect
-      r_send( :inspect ).to_s
+      P.nf( :inspect ).r_call( self ).to_s
     end
 
     def to_s
@@ -207,6 +207,10 @@ module P
 
     receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }
     receive( :to_list   ) { |env| P.list( self ) }
+
+    receive( :respond_to?, 'name' ) do |env|
+      _get( env[:name] ) ? P.true : P.false
+    end
 
     receive( :clone, 'f' ) do |env|
       f = env[:f]
@@ -223,7 +227,6 @@ module P
   def self.object
     @object ||= Object.build( prototype: nil ) do
       bind( :to_string, fn { |env| P.string( "Object.prototype" ) } )
-      bind( :inspect,   fn { |env| P.string( "Object.prototype" ) } )
     end
   end
 

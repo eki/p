@@ -20,7 +20,6 @@ module P
   def self.true
     @true ||= Object.build do
       bind( 'to_string', %Q( () -> 'true' ) )
-      bind( 'inspect',   %Q( () -> 'true' ) )
 
       bind( '==', fn( '(o)' ) { |env| P.boolean( env[:o] == P.true ) } )
     end
@@ -29,7 +28,6 @@ module P
   def self.false
     @false ||= Object.build do
       bind( 'to_string', %Q( () -> 'false' ) )
-      bind( 'inspect',   %Q( () -> 'false' ) )
 
       bind( '==', fn( '(o)' ) { |env| P.boolean( env[:o] == P.false ) } )
     end
@@ -37,8 +35,8 @@ module P
 
   def self.nil
     @nil ||= Object.build do
-      bind( 'to_string', %Q( () -> '' ) )
-      bind( 'inspect',   %Q( () -> 'nil' ) )
+      bind( 'to_string',  %Q( () -> '' ) )
+      bind( 'to_literal', %Q( () -> 'nil' ) )
 
       bind( '==', fn( '(o)' ) { |env| P.boolean( env[:o] == P.nil ) } )
     end

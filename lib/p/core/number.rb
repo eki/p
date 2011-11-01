@@ -42,7 +42,6 @@ module P
     receive( :to_ratio )    { |env| Ratio.new( value ) }
     receive( :to_rational ) { |env| P.number( Ratio.new( value ) ) }
 
-    receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
 
     def to_s

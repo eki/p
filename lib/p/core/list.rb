@@ -2,6 +2,8 @@
 module P
 
   class List < Object
+    include Enumerable
+
     attr_reader :value
 
     def initialize( *objs )
@@ -44,7 +46,6 @@ module P
     receive( :empty?    ) { |env| P.boolean( empty? ) }
     receive( :length    ) { |env| P.number( length ) }
 
-    receive( :inspect   ) { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
 
     receive( :to_list   ) { |env| self }

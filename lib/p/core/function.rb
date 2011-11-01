@@ -51,7 +51,10 @@ module P
       end
     end
 
-    receive( :inspect )   { |env| P.string( inspect ) }
+    def to_s
+      inspect
+    end
+
     receive( :to_string ) { |env| P.string( to_s ) }
   end
 
@@ -138,7 +141,6 @@ module P
 
     receive( :environment ) { |env| environment }
 
-    receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
   end
 
@@ -186,7 +188,6 @@ module P
       inspect
     end
 
-    receive( :inspect )   { |env| P.string( inspect ) }
     receive( :to_string ) { |env| P.string( to_s ) }
   end
 
