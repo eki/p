@@ -12,18 +12,20 @@ module P
     end
 
     def evaluate( environment )
-      if left.seq? || right.seq?
+      if left.send?
+        reduce.evaluate( environment )
+      elsif left.seq? || right.seq?
         lvals = left.to_seq.list
         rvals = right.to_seq.list.map { |e| e.evaluate( environment ) }
 
         lvals.zip( rvals ) do |lval, rval|
-          rval ||= Nil.new
-          environment.set( String.new( lval.value ), rval )
+          rval ||= P.nil
+          environment.set( P.string( lval.value ), rval )
         end
 
-        List.new( *rvals )
+        P.list( *rvals )
       else
-        environment.set( String.new( left.value ), 
+        environment.set( P.string( left.value ), 
           right.evaluate( environment ) )
       end
     end

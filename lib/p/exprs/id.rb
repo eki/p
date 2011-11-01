@@ -12,10 +12,16 @@ module P
     end
 
     def evaluate( environment )
-      if o = environment.get( String.new( value ) )
-        o.call
+      name = to_sym
+
+      if o = environment.local_get( name )
+        o.call( Expr.args, environment )
+      elsif environment.p_self && environment.p_self._get( name )
+        environment.p_self.p_send( name, Expr.args, environment )
+      elsif o = environment.get( name )
+        o.call( Expr.args, environment )
       else
-        Nil.new
+        P.nil
       end
     end
 

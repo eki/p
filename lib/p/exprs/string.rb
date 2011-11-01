@@ -3,7 +3,7 @@ module P
 
   class StringExpr < Atom
     def evaluate( environment )
-      String.new( value )
+      P.string( value )
     end
   end
 

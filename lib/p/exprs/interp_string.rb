@@ -5,7 +5,7 @@ module P
 
     def evaluate( environment )
       s = list.inject( '' ) { |m,n| m + n.evaluate( environment ).to_s }
-      String.new( s )
+      P.string( s )
     end
 
   end

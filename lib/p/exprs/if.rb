@@ -9,12 +9,12 @@ module P
 
       v = cond.evaluate( environment )
 
-      if Boolean.true?( v )
+      if P.true?( v )
         b_then.evaluate( environment )
       elsif b_else
         b_else.evaluate( environment )
       else
-        Nil.new
+        P.nil
       end
     end
   end

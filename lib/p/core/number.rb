@@ -24,22 +24,26 @@ module P
     COMP_OPS = [:<, :>, :<=, :>=]
 
     MATH_OPS.each do |op|
-      p_receive( op, "(n)" ) do |env|
-        P.number( value.send( op, env.get( 'n' ).value ) )
+      receive( op, 'n' ) do |env|
+        P.number( value.send( op, env[:n].value ) ) # coerce ?  to_number ?
       end
     end
 
     COMP_OPS.each do |op|
-      p_receive( op, "(n)" ) do |env|
-        Boolean.for( value.send( op, env.get( 'n' ).value ) )
+      receive( op, 'n' ) do |env|
+        P.boolean( value.send( op, env[:n].value ) ) # coerce ?  to_number ?
       end
     end
 
-    p_receive( :'number?' )      { |env| True.new }
-    p_receive( :'to_float'  )    { |env| Float.new( value ) }
-    p_receive( :'to_integer'  )  { |env| Integer.new( value ) }
-    p_receive( :'to_ratio'  )    { |env| Ratio.new( value ) }
-    p_receive( :'to_rational'  ) { |env| P.number( Ratio.new( value ) ) }
+    receive( :number?, %q( () -> true ) )
+
+    receive( :to_float )    { |env| Float.new( value ) }
+    receive( :to_integer )  { |env| Integer.new( value ) }
+    receive( :to_ratio )    { |env| Ratio.new( value ) }
+    receive( :to_rational ) { |env| P.number( Ratio.new( value ) ) }
+
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
 
     def to_s
       value.to_s
@@ -48,10 +52,6 @@ module P
     def inspect
       value.inspect
     end
-
-    def ==( o )
-      o.kind_of?( Number ) && value == o.value
-    end
   end
 
   class Integer < Number
@@ -59,17 +59,29 @@ module P
       @value = value.to_i
     end
 
+    def numerator
+      value
+    end
+
+    def denominator
+      1 
+    end
+
     BITWISE_OPS = [:&, :|, :^, :<<, :>>]
 
     BITWISE_OPS.each do |op|
-      p_receive( op, "(n)" ) do |env|
-        P.number( value.send( op, env.get( 'n' ).value ) )
+      receive( op, 'n' ) do |env|
+        P.number( value.send( op, env[:n] ).value )
       end
     end
 
-    p_receive( :'integer?' )  { |env| True.new }
-    p_receive( :'rational?' ) { |env| True.new }
-    p_receive( :~ )           { |env| P.number( ~ value ) }
+    receive( :integer?,  %q( () -> true ) )
+    receive( :rational?, %q( () -> true ) )
+
+    receive( :~ ) { |env| P.number( ~ value ) }
+
+    receive( :numerator )   { |env| P.number( numerator ) }
+    receive( :denominator ) { |env| P.number( denominator ) }
   end
 
   class Ratio < Number
@@ -85,10 +97,11 @@ module P
       value.denominator
     end
 
-    p_receive( :'ratio?' )    { |env| True.new }
-    p_receive( :'rational?' ) { |env| True.new }
-    p_receive( :numerator )   { |env| P.number( numerator ) }
-    p_receive( :denominator ) { |env| P.number( denominator ) }
+    receive( :ratio?,    %q( () -> true ) )
+    receive( :rational?, %q( () -> true ) )
+
+    receive( :numerator )   { |env| P.number( numerator ) }
+    receive( :denominator ) { |env| P.number( denominator ) }
   end
 
   class Float < Number
@@ -96,7 +109,7 @@ module P
       @value = value.to_f
     end
 
-    p_receive( :'float?' )    { |env| True.new }
+    receive( :float?, %q( () -> true ) )
   end
 
 end

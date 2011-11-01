@@ -7,7 +7,7 @@ module P
     end
 
     def evaluate( environment )
-      list.inject( Nil.new ) { |m,n| n.evaluate( environment ) }
+      list.inject( P.nil ) { |m,n| n.evaluate( environment ) }
     end
 
   end

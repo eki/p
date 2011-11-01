@@ -8,15 +8,40 @@ module P
       @value = hash.to_hash
     end
 
-    p_receive( :'map?' )   { |env| True.new }
-    p_receive( :'empty?' ) { |env| Boolean.for( value.empty? ) }
-    p_receive( :length )   { |env| P.number( value.length ) }
+    def empty?
+      value.empty?
+    end
+
+    def length
+      value.length
+    end
+
+    def get( key )
+      value[key] || P.nil
+    end
+
+    def keys
+      value.keys
+    end
+
+    def values
+      value.values
+    end
+
+    receive( :map?, %q( () -> true ) )
+
+    receive( :empty? )     { |env| P.boolean( empty? ) }
+    receive( :length )     { |env| P.number( length ) }
+
+    receive( :keys )       { |env| P.list( *keys ) }
+    receive( :values )     { |env| P.list( *values ) }
 
     # temporary until [] notation is added
 
-    p_receive( :get, '(key)' ) do |env| 
-      value[env.get( 'key' )] || Nil.new
-    end
+    receive( :get, 'key' ) { |env| get( env[:key] ) }
+
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
 
     def to_s
       value.to_s
@@ -24,10 +49,6 @@ module P
 
     def inspect
       value.inspect
-    end
-
-    def ==( o )
-      o.kind_of?( Map ) && value == o.value
     end
   end
 

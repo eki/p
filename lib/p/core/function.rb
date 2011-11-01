@@ -50,18 +50,45 @@ module P
         "#{name}#{mutable? ? ' =' : ':'} #{default}"
       end
     end
+
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
   end
 
-  class Function < Object
+  class Args
+    attr_reader :list
+
+    def initialize( *list )
+      @list = list
+    end
+
+    def bind( parameters, environment, to_environment=environment )
+      bind_by_position( parameters, environment, to_environment )
+    end
+
+    def bind_by_position( parameters, environment, to_env )
+      parameters.each_with_index do |p,i|
+        if arg = list[i]
+          to_env.bind( p.name, arg )
+        elsif p.default?
+          to_env.bind( p.name, p.default.evaluate( environment ) )
+        else
+          raise "Wrong number of arguments #{self} for #{parameters}"
+        end
+      end
+    end
+  end
+
+  class Function
     attr_reader :parameters, :code
 
     def initialize( parameters=[], code=nil )
       @parameters, @code = parameters, code
     end
 
-    def eval( args, environment )
-      args.bind( parameters, environment )
-      code.evaluate( environment )
+    def eval( args, args_env, exec_env )
+      args.bind( parameters, args_env, exec_env )
+      code.evaluate( exec_env )
     end
 
     def inspect
@@ -80,14 +107,25 @@ module P
       @function, @environment = function, environment
     end
 
-    def call( args=Expr.args, env=nil )
-      if env
-        env.parent = environment
-      else
-        env = Environment.new( environment )
-      end
+    def call( args, args_env, p_self=nil )
+      exec_env = Environment.new( environment )
+      exec_env.p_self = p_self  if p_self
+      function.eval( args, args_env, exec_env )
+    end
 
-      function.eval( args, env )
+    def r_call( *args )
+      call( Args.new( *args ), Environment.new, environment, nil )
+    end
+
+    def eval( args, args_env, exec_env )
+      env = environment.include( exec_env )
+      v = function.eval( args, args_env, env )
+      exec_env.copy( env )
+      v
+    end
+
+    def r_eval( args, exec_env )
+      eval( Args.new( *args ), Environment.new, exec_env )
     end
 
     def inspect
@@ -97,26 +135,47 @@ module P
     def to_s
       inspect
     end
+
+    receive( :environment ) { |env| environment }
+
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
+  end
+
+  def self.closure( str )
+    expr = P.parse( str ).first.first
+
+    if expr.fn?
+      expr.evaluate( Environment.top )
+    end
   end
 
   class NativeFunction < Object
-    attr_reader :parameters, :block
+    attr_reader :block
 
-    def initialize( params_string="", &block )
+    def initialize( params_string=nil, &block )
       if params_string
-        params = P.parse( params_string ).first.first.to_params
+        params = case params_string
+          when ::String
+            P.parse( params_string ).first.first.to_params
+          else params_string
+        end
       else
         params = Expr.params
       end
 
-      @parameters = params.evaluate( nil )  # eliminate the arg to params.evaluate
+      @parameters = params.evaluate
       @block = block
     end
 
-    def call( args=Expr.args, env=nil )
-      env = Environment.new
-      args.bind( parameters, env )
-      block[env]
+    def call( args, args_env, p_self=nil )
+      exec_env = Environment.new
+      args.bind( parameters, args_env, exec_env )
+      p_self ? p_self.instance_exec( exec_env, &block ) : block[exec_env]
+    end
+
+    def r_call( *args )
+      call( Args.new( *args ), Environment.new )
     end
 
     def inspect
@@ -126,6 +185,9 @@ module P
     def to_s
       inspect
     end
+
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
   end
 
 end

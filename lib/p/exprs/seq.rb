@@ -14,7 +14,7 @@ module P
 
     def evaluate( environment )
       if list.empty?
-        Nil.new
+        P.nil
       else
         raise "Attempt to evaluate non-nil seq."
       end

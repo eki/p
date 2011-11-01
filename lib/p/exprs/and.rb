@@ -5,7 +5,7 @@ module P
     def evaluate( environment )
       v = left.evaluate( environment )
 
-      if Boolean.true?( v )
+      if P.true?( v )
         right.evaluate( environment )
       else
         v

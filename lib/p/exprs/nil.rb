@@ -4,7 +4,7 @@ module P
   class NilExpr < Atom
 
     def evaluate( environment )
-      Nil.new
+      P.nil
     end
 
     def to_s

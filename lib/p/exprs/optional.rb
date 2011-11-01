@@ -3,7 +3,7 @@ module P
 
   class OptionalExpr < Expr
     def evaluate( environment )
-      Nil.new
+      P.nil
     end
   end
 

@@ -4,7 +4,7 @@ module P
   class FalseExpr < Atom
 
     def evaluate( environment )
-      False.new
+      P.false
     end
 
     def to_s

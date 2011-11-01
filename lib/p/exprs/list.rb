@@ -8,7 +8,7 @@ module P
     end
 
     def evaluate( environment )
-      List.new( *value.map { |expr| expr.evaluate( environment ) } )
+      P.list( *value.map { |expr| expr.evaluate( environment ) } )
     end
 
     def to_s

@@ -1,24 +1,47 @@
 
 module P
 
-  class Boolean
-
-    def self.for( v )
-      if v.to_s == 'true'
-        True.new
-      else
-        False.new
-      end
+  def self.boolean( v )
+    if v.to_s == 'true'
+      P.true
+    else
+      P.false
     end
+  end
 
-    def self.true?( v )
-      ! (v.kind_of?( Nil ) || v.kind_of?( False ))
+  def self.true?( v )
+    ! (v == P.nil || v == P.false)
+  end
+
+  def self.false?( v )
+    ! true?( v )
+  end
+
+  def self.true
+    @true ||= Object.build do
+      bind( 'to_string', %Q( () -> 'true' ) )
+      bind( 'inspect',   %Q( () -> 'true' ) )
+
+      bind( '==', fn( '(o)' ) { |env| P.boolean( env[:o] == P.true ) } )
     end
+  end
 
-    def self.false?( v )
-      ! true?( v )
+  def self.false
+    @false ||= Object.build do
+      bind( 'to_string', %Q( () -> 'false' ) )
+      bind( 'inspect',   %Q( () -> 'false' ) )
+
+      bind( '==', fn( '(o)' ) { |env| P.boolean( env[:o] == P.false ) } )
     end
+  end
 
+  def self.nil
+    @nil ||= Object.build do
+      bind( 'to_string', %Q( () -> '' ) )
+      bind( 'inspect',   %Q( () -> 'nil' ) )
+
+      bind( '==', fn( '(o)' ) { |env| P.boolean( env[:o] == P.nil ) } )
+    end
   end
 
 end

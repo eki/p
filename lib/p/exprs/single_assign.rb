@@ -8,13 +8,13 @@ module P
         rvals = right.to_seq.list.map { |e| e.evaluate( environment ) }
 
         lvals.zip( rvals ) do |lval, rval|
-          rval ||= Nil.new
-          environment.bind( String.new( lval.value ), rval )
+          rval ||= P.nil
+          environment.bind( lval.value.to_sym, rval )
         end
 
-        List.new( *rvals )
+        P.list( *rvals )
       else
-        environment.bind( String.new( left.value ), 
+        environment.bind( left.value.to_sym, 
           right.evaluate( environment ) )
       end
     end

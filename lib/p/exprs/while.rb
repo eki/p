@@ -5,11 +5,11 @@ module P
     def evaluate( environment )
       cond   = list[0]
       b_then = list[1]
-      last   = Nil.new
+      last   = P.nil
 
       v = cond.evaluate( environment )
 
-      while Boolean.true?( v )
+      while P.true?( v )
         last = b_then.evaluate( environment )
 
         v = cond.evaluate( environment )

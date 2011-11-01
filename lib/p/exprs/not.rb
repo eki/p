@@ -3,12 +3,10 @@ module P
 
   class NotExpr < Expr
     def evaluate( environment )
-      v = first.evaluate( environment )
-
-      if v == Nil.new || v == False.new
-        True.new
+      if P.true?( first.evaluate( environment ) )
+        P.false
       else
-        False.new
+        P.true
       end
     end
 

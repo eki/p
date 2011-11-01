@@ -9,16 +9,6 @@ module P
       @name, @value, @mutable = name, value, !! mutable
     end
 
-    def intialize_copy( original )
-      @name, @value = original.name.dup, original.value.dup
-      @mutable = original.mutable?
-    end
-
-    p_receive( :name )         { |env| name }
-    p_receive( :value )        { |env| value }
-    p_receive( :'mutable?' )   { |env| Boolean.for( mutable? ) }
-    p_receive( :'immutable?' ) { |env| Boolean.for( immutable? ) }
-
     def mutable?
       @mutable
     end
@@ -28,12 +18,20 @@ module P
     end
 
     def inspect
-      "#{name}#{mutable? ? ' =' : ':'} #{value}"
+      "#{name}#{mutable? ? ' =' : ':'} #{value.inspect}"
     end
 
     def to_s
       inspect
     end
+
+    receive( :name )       { |env| P.string( name ) }
+    receive( :value )      { |env| value }
+    receive( :mutable? )   { |env| P.boolean( mutable? ) }
+    receive( :immutable? ) { |env| P.boolean( immutable? ) }
+
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
   end
 
 end

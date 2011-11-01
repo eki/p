@@ -11,7 +11,7 @@ module P
       h = {}
       value.each do |expr| 
         if expr.pair?
-          h[String.new( expr.left )] = expr.right.evaluate( environment )
+          h[P.string( expr.left )] = expr.right.evaluate( environment )
         else
           raise "Expected pair (#{expr}) in map: #{value}"
         end

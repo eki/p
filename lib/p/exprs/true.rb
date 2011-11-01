@@ -4,7 +4,7 @@ module P
   class TrueExpr < Atom
 
     def evaluate( environment )
-      True.new
+      P.true
     end
 
     def to_s

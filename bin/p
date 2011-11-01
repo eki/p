@@ -68,7 +68,6 @@ def continue_read( line )
       if next_line.empty?
         tree = P.parse( line )
         if OPTS[:reduce]
-          puts "calling reduce on tree #{tree}"
           puts tree.reduce
         elsif OPTS[:evaluate]
           if o = tree.evaluate( ENVIRONMENT )
@@ -102,7 +101,6 @@ def read
       else
         tree = P.parse( line )
         if OPTS[:reduce]
-          puts "calling reduce on tree #{tree}"
           puts tree.reduce
         elsif OPTS[:evaluate]
           if o = tree.evaluate( ENVIRONMENT )

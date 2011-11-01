@@ -8,24 +8,6 @@ module P
       @value = value.to_s
     end
 
-    def initialize_copy( original )
-      @value = original.value.dup
-    end
-
-    p_receive( :length ) { |env| P.number( value.length ) }
-
-    def ===( o )
-      o.kind_of?( String ) ? o.value == value : o.to_s == value
-    end
-
-    def to_sym
-      r_string.to_sym
-    end
-
-    def ==( o )
-      o.kind_of?( String ) && o.value == value
-    end
-
     def inspect
       %Q("#{value}")
     end
@@ -34,6 +16,19 @@ module P
       value
     end
 
+    def length
+      value.length
+    end
+
+    receive( :length )    { |env| P.number( length ) }
+    receive( :inspect )   { |env| P.string( inspect ) }
+    receive( :to_string ) { |env| P.string( to_s ) }
+
+    receive( :string?, %q( () -> true ) )
+  end
+
+  def self.string( v )
+    String.new( v )
   end
 
 end
