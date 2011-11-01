@@ -19,7 +19,6 @@ module P
 
   def self.true
     @true ||= Object.build do
-      bind( 'to_string',  %q( () -> 'true' ) )
       bind( 'to_literal', %q( () -> 'true' ) )
 
       bind( '==', fn( '(o)' ) { |env| env[:o] == P.true } )
@@ -28,7 +27,6 @@ module P
 
   def self.false
     @false ||= Object.build do
-      bind( 'to_string',  %q( () -> 'false' ) )
       bind( 'to_literal', %q( () -> 'false' ) )
 
       bind( '==', fn( '(o)' ) { |env| env[:o] == P.false } )

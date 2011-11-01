@@ -4,7 +4,6 @@ module P
   class NF < Object
     receive( :puts, 'o' ) do |env|
       puts( env[:o].r_send( :to_string ) )
-      P.nil
     end
 
     receive( :inspect, 'o' ) do |env|
@@ -13,11 +12,9 @@ module P
       if P.true?( o.r_send( :respond_to?, :inspect ) )
         list = o.r_send( :inspect ).r_send( :to_list )
 
-        s = list.map do |m|
-          "#{m}: #{o.r_send( m.to_sym )}"
-        end.join( ', ' )
+        s = list.map { |m| "#{m}: #{o.r_send( m )}" }.join( ', ' )
 
-        P.string( "(#{s})" )
+        "(#{s})"
       elsif P.true?( o.r_send( :respond_to?, :to_literal ) )
         o.r_send( :to_literal )
       else
@@ -25,8 +22,13 @@ module P
       end
     end
 
-    receive( :default_to_string ) { |env| P.string( 'Object' ) }
-    receive( :default_inspect )   { |env| P.list( P.string( :to_string ) ) }
+    receive( :default_to_string ) do |env| 
+      if P.true?( r_send( :respond_to?, :to_literal ) )
+        r_send( :to_literal )
+      else
+        '(Suggestion: add a to_string or to_literal to all your objects)'
+      end
+    end
 
     receive( :new, 'f' ) do |env|
       f = env[:f]
@@ -36,10 +38,6 @@ module P
 
       unless e.bindings.any? { |b| b.name == :to_string }
         e.bind( :to_string, P.nf( :default_to_string ) )
-      end
-
-      unless e.bindings.any? { |b| b.name == :inspect }
-        e.bind( :inspect, P.nf( :default_inspect ) )
       end
 
       Object.new( prototype: P.object, bindings: e.bindings )

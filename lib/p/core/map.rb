@@ -35,10 +35,14 @@ module P
     receive( :keys       ) { |env| keys }
     receive( :values     ) { |env| values }
     receive( :[], 'key'  ) { |env| self[env[:index]] }
-    receive( :to_string  ) { |env| to_s }
+    receive( :to_literal ) { |env| to_literal }
 
     def to_s
       value.to_s
+    end
+
+    def to_literal
+      to_s  # This should really be formatted to match a parsable literal
     end
 
     def inspect

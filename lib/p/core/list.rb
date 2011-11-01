@@ -45,12 +45,16 @@ module P
     receive( :last        ) { |env| last }
     receive( :empty?      ) { |env| empty? }
     receive( :length      ) { |env| length }
-    receive( :to_string   ) { |env| to_s }
+    receive( :to_literal  ) { |env| to_literal }
     receive( :to_list     ) { |env| self }
     receive( :[], 'index' ) { |env| self[env[:index].r_send( :to_integer )] }
 
     def to_s
       value.to_s
+    end
+
+    def to_literal
+      to_s  # This should really be formatted to match a parsable literal
     end
 
     def inspect

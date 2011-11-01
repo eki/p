@@ -9,6 +9,10 @@ module P
     end
 
     def inspect
+      to_literal
+    end
+
+    def to_literal
       %Q("#{value}")
     end
 
@@ -25,7 +29,7 @@ module P
     end
 
     receive( :length     ) { |env| length }
-    receive( :to_literal ) { |env| inspect }
+    receive( :to_literal ) { |env| to_literal }
     receive( :to_string  ) { |env| to_s }
 
     receive( :string?, %q( () -> true ) )

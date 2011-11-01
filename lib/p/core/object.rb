@@ -7,6 +7,10 @@ module P
       @bindings = []
 
       instance_eval( &block )
+
+      unless bindings.any? { |b| b.name == :to_string }
+        bind( :to_string, P.nf( :default_to_string ) )
+      end
     end
 
     def bind( name, value )

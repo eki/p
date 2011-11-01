@@ -34,7 +34,7 @@ module P
     receive( :to_ratio    ) { |env| Ratio.new( value ) }
     receive( :to_rational ) { |env| P.number( Ratio.new( value ) ) }
 
-    receive( :to_string   ) { |env| to_s }
+    receive( :to_literal  ) { |env| to_s }
 
     def to_s
       value.to_s
