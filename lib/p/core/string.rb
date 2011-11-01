@@ -24,9 +24,9 @@ module P
       value.length
     end
 
-    receive( :length )     { |env| P.number( length ) }
-    receive( :to_literal ) { |env| P.string( inspect ) }
-    receive( :to_string )  { |env| P.string( to_s ) }
+    receive( :length     ) { |env| length }
+    receive( :to_literal ) { |env| inspect }
+    receive( :to_string  ) { |env| to_s }
 
     receive( :string?, %q( () -> true ) )
   end

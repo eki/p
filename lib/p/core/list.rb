@@ -40,21 +40,14 @@ module P
 
     receive( :list?, %q( () -> true ) )
 
-    receive( :first     ) { |env| first }
-    receive( :rest      ) { |env| rest }
-    receive( :last      ) { |env| last }
-    receive( :empty?    ) { |env| P.boolean( empty? ) }
-    receive( :length    ) { |env| P.number( length ) }
-
-    receive( :to_string ) { |env| P.string( to_s ) }
-
-    receive( :to_list   ) { |env| self }
-
-    receive( :[], 'index' ) do |env| 
-      index = env[:index].r_send( :to_integer )
-      obj = self[index]
-      obj ? obj : P.nil
-    end
+    receive( :first       ) { |env| first }
+    receive( :rest        ) { |env| rest }
+    receive( :last        ) { |env| last }
+    receive( :empty?      ) { |env| empty? }
+    receive( :length      ) { |env| length }
+    receive( :to_string   ) { |env| to_s }
+    receive( :to_list     ) { |env| self }
+    receive( :[], 'index' ) { |env| self[env[:index].r_send( :to_integer )] }
 
     def to_s
       value.to_s

@@ -55,7 +55,7 @@ module P
       inspect
     end
 
-    receive( :to_string ) { |env| P.string( to_s ) }
+    receive( :to_string ) { |env| to_s }
   end
 
   class Args
@@ -140,8 +140,7 @@ module P
     end
 
     receive( :environment ) { |env| environment }
-
-    receive( :to_string ) { |env| P.string( to_s ) }
+    receive( :to_string )   { |env| to_s }
   end
 
   def self.closure( str )
@@ -173,7 +172,8 @@ module P
     def call( args, args_env, p_self=nil )
       exec_env = Environment.new
       args.bind( parameters, args_env, exec_env )
-      p_self ? p_self.instance_exec( exec_env, &block ) : block[exec_env]
+      v = p_self ? p_self.instance_exec( exec_env, &block ) : block[exec_env]
+      v.to_p
     end
 
     def r_call( *args )
@@ -188,7 +188,7 @@ module P
       inspect
     end
 
-    receive( :to_string ) { |env| P.string( to_s ) }
+    receive( :to_string ) { |env| to_s }
   end
 
 end

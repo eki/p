@@ -147,9 +147,10 @@ module P
       inspect
     end
 
-    receive( :bindings         ) { |env| P.list( *bindings ) }
+    receive( :to_string        ) { |env| to_s }
+    receive( :bindings         ) { |env| bindings }
     receive( :get,      'name' ) { |env| get( env[:name] ) }
-    receive( :defined?, 'name' ) { |env| P.boolean( defined?( env[:name] ) ) }
+    receive( :defined?, 'name' ) { |env| defined?( env[:name] ) }
 
     receive( :set, 'name,value' ) do |env| 
       set( env[:name], env[:value] )
@@ -158,9 +159,6 @@ module P
     receive( :bind, 'name,value' ) do |env| 
       bind( env[:name], env[:value] )
     end
-
-    receive( :to_string ) { |env| P.string( to_s ) }
-
 
     def self.top
       return @top  if @top

@@ -149,7 +149,7 @@ module P
       if binding = _bindings.find { |b| b.name == name.to_sym }
         binding.value
       elsif o = self.class.p_get( name )
-        o
+        o.to_p
       elsif prototype
         prototype._get( name )
       end
@@ -203,6 +203,10 @@ module P
 
     def to_sym
       to_s.to_sym
+    end
+
+    def to_p
+      self
     end
 
     receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }

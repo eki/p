@@ -28,20 +28,14 @@ module P
       value.values
     end
 
-    receive( :map?, %q( () -> true ) )
+    receive( :map?,      %q( () -> true ) )
 
-    receive( :empty? )     { |env| P.boolean( empty? ) }
-    receive( :length )     { |env| P.number( length ) }
-
-    receive( :keys )       { |env| P.list( *keys ) }
-    receive( :values )     { |env| P.list( *values ) }
-
-    receive( :[], 'key' ) do |env| 
-      obj = self[env[:key]]
-      obj ? obj : P.nil
-    end
-
-    receive( :to_string ) { |env| P.string( to_s ) }
+    receive( :empty?     ) { |env| empty? }
+    receive( :length     ) { |env| length }
+    receive( :keys       ) { |env| keys }
+    receive( :values     ) { |env| values }
+    receive( :[], 'key'  ) { |env| self[env[:index]] }
+    receive( :to_string  ) { |env| to_s }
 
     def to_s
       value.to_s

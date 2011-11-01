@@ -19,30 +19,22 @@ module P
   class Number < Object
     attr_reader :value
 
-    MATH_OPS = [:+, :-, :*, :/, :%, :<=>, :**]
+    OPS = [:+, :-, :*, :/, :%, :<=>, :**, :<, :>, :<=, :>=]
 
-    COMP_OPS = [:<, :>, :<=, :>=]
-
-    MATH_OPS.each do |op|
+    OPS.each do |op|
       receive( op, 'n' ) do |env|
-        P.number( value.send( op, env[:n].value ) ) # coerce ?  to_number ?
-      end
-    end
-
-    COMP_OPS.each do |op|
-      receive( op, 'n' ) do |env|
-        P.boolean( value.send( op, env[:n].value ) ) # coerce ?  to_number ?
+        value.send( op, env[:n].value )  #  coerce ? to_number ?
       end
     end
 
     receive( :number?, %q( () -> true ) )
 
-    receive( :to_float )    { |env| Float.new( value ) }
-    receive( :to_integer )  { |env| Integer.new( value ) }
-    receive( :to_ratio )    { |env| Ratio.new( value ) }
+    receive( :to_float    ) { |env| Float.new( value ) }
+    receive( :to_integer  ) { |env| Integer.new( value ) }
+    receive( :to_ratio    ) { |env| Ratio.new( value ) }
     receive( :to_rational ) { |env| P.number( Ratio.new( value ) ) }
 
-    receive( :to_string ) { |env| P.string( to_s ) }
+    receive( :to_string   ) { |env| to_s }
 
     def to_s
       value.to_s
@@ -74,17 +66,16 @@ module P
 
     BITWISE_OPS.each do |op|
       receive( op, 'n' ) do |env|
-        P.number( value.send( op, env[:n] ).value )
+        value.send( op, env[:n] ).value
       end
     end
 
     receive( :integer?,  %q( () -> true ) )
     receive( :rational?, %q( () -> true ) )
 
-    receive( :~ ) { |env| P.number( ~ value ) }
-
-    receive( :numerator )   { |env| P.number( numerator ) }
-    receive( :denominator ) { |env| P.number( denominator ) }
+    receive( :~           ) { |env| ~ value }
+    receive( :numerator   ) { |env| numerator }
+    receive( :denominator ) { |env| denominator }
   end
 
   class Ratio < Number
@@ -103,8 +94,8 @@ module P
     receive( :ratio?,    %q( () -> true ) )
     receive( :rational?, %q( () -> true ) )
 
-    receive( :numerator )   { |env| P.number( numerator ) }
-    receive( :denominator ) { |env| P.number( denominator ) }
+    receive( :numerator )   { |env| numerator }
+    receive( :denominator ) { |env| denominator }
 
     def to_r
       value
