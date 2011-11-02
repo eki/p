@@ -7,10 +7,6 @@ module P
       @bindings = []
 
       instance_eval( &block )
-
-      unless bindings.any? { |b| b.name == :to_string }
-        bind( :to_string, P.nf( :default_to_string ) )
-      end
     end
 
     def bind( name, value )
@@ -215,11 +211,12 @@ module P
 
     receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }
     receive( :to_list   ) { |env| P.list( self ) }
+    receive( :to_string ) { |env| '' }
     receive( :prototype ) { |env| prototype || P.nil }
+    receive( :methods   ) { |env| _bindings.map { |b| b.name } }
 
-    receive( :respond_to?, 'name' ) do |env|
-      _get( env[:name] ) ? P.true : P.false
-    end
+    receive( :respond_to?,    'name'    ) { |env| !! _get( env[:name] ) }
+    receive( :method_missing, 'args: *' ) { |env| P.nil }
 
     receive( :clone, 'f' ) do |env|
       f = env[:f]
@@ -229,17 +226,10 @@ module P
 
       Object.new( prototype: self, bindings: e.bindings )
     end
-
-    receive( :method_missing, 'args: *' ) do |env| 
-      puts "method_missing args: #{env[:args]}"
-      P.nil 
-    end
   end
 
   def self.object
-    @object ||= Object.build( prototype: nil ) do
-      bind( :to_string, fn { |env| P.string( "Object.prototype" ) } )
-    end
+    @object ||= Object.new( prototype: nil )
   end
 
 end

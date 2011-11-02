@@ -35,16 +35,7 @@ module P
     end
 
     receive( :new, 'f' ) do |env|
-      f = env[:f]
-
-      e = Environment.new
-      f.r_eval( [], e )       # e will contain the bindings created by f
-
-      unless e.bindings.any? { |b| b.name == :to_string }
-        e.bind( :to_string, P.nf( :default_to_string ) )
-      end
-
-      Object.new( prototype: P.object, bindings: e.bindings )
+      P.object.r_send( :clone, env[:f] )
     end
 
     def []( name )
