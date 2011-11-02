@@ -767,6 +767,7 @@ module P
       end
 
       prefix( :sub,   20, op: :neg )
+      prefix( :band,  20, op: :nocall )
 
       prefix( :if ) do |t|
         parse_statement( :if, t ) do |t, condition, block|

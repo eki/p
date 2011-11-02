@@ -164,8 +164,9 @@ module P
       return @top  if @top
 
       @top ||= Environment.new( nil ) do
-        bind( :puts, P.nf( :puts ) )
-        bind( :new,  P.nf( :new ) )
+        bind( :puts,     P.nf( :puts ) )
+        bind( :new,      P.nf( :new ) )
+        bind( :inspect,  P.nf( :inspect ) )
       end
     end
   end
