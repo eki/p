@@ -13,7 +13,11 @@ module P
 
     def bind_by_position( parameters, environment, to_env )
       parameters.each_with_index do |p,i|
-        if arg = list[i]
+        if p.glob?
+          last_args = list[parameters.length - 1, list.length] || []
+          e_args = last_args.map { |a| a.evaluate( environment ) }
+          to_env.bind( p.name, e_args.to_p )
+        elsif arg = list[i]
           to_env.bind( p.name, arg.evaluate( environment ) )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( environment ) )
@@ -29,7 +33,14 @@ module P
 
     def bind_by_name( parameters, environment, to_env )
       parameters.each do |p,i|
-        if arg = list.find { |pair| p.name === pair.left.value }
+        if p.glob?
+          last_args = list.to_a[parameters.length - 1, list.length] || []
+          e_args = last_args.map do |pair|
+            [pair.left.to_p, pair.right.evaluate( environment )]
+          end
+
+          to_env.bind( p.name, Hash[e_args].to_p )
+        elsif arg = list.find { |pair| p.name === pair.left.to_sym }
           to_env.bind( p.name, arg.right.evaluate( environment ) )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( environment ) )

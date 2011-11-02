@@ -230,7 +230,10 @@ module P
       Object.new( prototype: self, bindings: e.bindings )
     end
 
-    receive( :method_missing, 'args: *' ) { |env| P.nil }
+    receive( :method_missing, 'args: *' ) do |env| 
+      puts "method_missing args: #{env[:args]}"
+      P.nil 
+    end
   end
 
   def self.object

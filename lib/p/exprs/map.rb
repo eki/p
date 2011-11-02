@@ -17,7 +17,7 @@ module P
         end
       end
 
-      Map.new( h )
+      P.map( h )
     end
 
     def to_s
@@ -35,7 +35,6 @@ module P
 
       "(map #{s})"
     end
-
   end
 
 end

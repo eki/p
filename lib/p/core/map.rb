@@ -2,6 +2,8 @@
 module P
 
   class Map < Object
+    include Enumerable
+
     attr_reader :value
 
     def initialize( hash )
@@ -28,14 +30,19 @@ module P
       value.values
     end
 
+    def each( &block )
+      value.each( &block )
+    end
+
     receive( :map?,      %q( () -> true ) )
 
     receive( :empty?     ) { |env| empty? }
     receive( :length     ) { |env| length }
     receive( :keys       ) { |env| keys }
     receive( :values     ) { |env| values }
-    receive( :[], 'key'  ) { |env| self[env[:index]] }
+    receive( :[], 'key'  ) { |env| self[env[:key]] }
     receive( :to_literal ) { |env| to_literal }
+    receive( :to_string  ) { |env| to_literal }
 
     def to_s
       value.to_s
@@ -52,6 +59,10 @@ module P
     def to_hash
       value
     end
+  end
+
+  def self.map( h )
+    Map.new( h )
   end
 
 end

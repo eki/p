@@ -36,11 +36,11 @@ module P
     end
 
     def glob?
-      default == GLOB
+      default? && default.glob?
     end
 
     def block?
-      default == BLOCK
+      default? && default.amp?
     end
 
     def inspect
@@ -83,7 +83,11 @@ module P
 
     def bind_by_position( parameters, environment, to_env )
       parameters.each_with_index do |p,i|
-        if arg = list[i]
+        if p.glob?
+          last_args = list[parameters.length - 1, list.length] || []
+
+          to_env.bind( p.name, last_args.to_p )
+        elsif arg = list[i]
           to_env.bind( p.name, arg.to_p )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( environment ) )
@@ -95,7 +99,11 @@ module P
 
     def bind_by_name( parameters, environment, to_env )
       parameters.each do |p,i|
-        if arg = hash.find { |k,v| p.name === k }
+        if p.glob?
+          last_args = hash.to_a[parameters.length - 1, hash.length] || []
+
+          to_env.bind( p.name, Hash[last_args].to_p )
+        elsif arg = hash.find { |k,v| p.name === k }
           to_env.bind( p.name, arg.last.to_p )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( environment ) )
@@ -141,7 +149,7 @@ module P
     end
 
     def r_call( *args )
-      call( Args.new( *args ), Environment.new, environment, nil )
+      call( Args.new( *args ), Environment.new, nil )
     end
 
     def eval( args, args_env, exec_env )

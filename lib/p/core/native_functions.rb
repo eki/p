@@ -2,8 +2,12 @@
 module P
 
   class NF < Object
-    receive( :puts, 'o' ) do |env|
-      puts( env[:o].r_send( :to_string ) )
+    receive( :puts, 'args: *' ) do |env|
+      env[:args].each do |arg|
+        puts( arg.r_send( :to_string ) )
+      end
+
+      P.nil
     end
 
     receive( :inspect, 'o' ) do |env|

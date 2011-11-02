@@ -46,6 +46,7 @@ module P
     receive( :empty?      ) { |env| empty? }
     receive( :length      ) { |env| length }
     receive( :to_literal  ) { |env| to_literal }
+    receive( :to_string   ) { |env| to_literal }
     receive( :to_list     ) { |env| self }
     receive( :[], 'index' ) { |env| self[env[:index].r_send( :to_integer )] }
 

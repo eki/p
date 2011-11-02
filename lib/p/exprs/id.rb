@@ -33,6 +33,10 @@ module P
       value.to_sym
     end
 
+    def to_p
+      value.to_p
+    end
+
   end
 
 end
