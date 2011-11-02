@@ -59,20 +59,44 @@ module P
   end
 
   class Args
-    attr_reader :list
+    attr_reader :list, :hash
 
     def initialize( *list )
       @list = list
+
+      if list.length == 1 && list.first.kind_of?( Hash )
+        @list, @hash = nil, @list.first
+      end
     end
 
     def bind( parameters, environment, to_environment=environment )
-      bind_by_position( parameters, environment, to_environment )
+      if bind_by_name?
+        bind_by_name( parameters, environment, to_environment )
+      else
+        bind_by_position( parameters, environment, to_environment )
+      end
+    end
+
+    def bind_by_name?
+      !! hash
     end
 
     def bind_by_position( parameters, environment, to_env )
       parameters.each_with_index do |p,i|
         if arg = list[i]
-          to_env.bind( p.name, arg )
+          to_env.bind( p.name, arg.to_p )
+        elsif p.default?
+          to_env.bind( p.name, p.default.evaluate( environment ) )
+        else
+          raise "Wrong number of arguments #{self} for #{parameters}"
+        end
+      end
+    end
+
+    def bind_by_name( parameters, environment, to_env )
+      parameters.each do |p,i|
+        if arg = hash.find { |k,v| p.name === k }
+          to_env.bind( p.name, arg.last.to_p )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( environment ) )
         else
