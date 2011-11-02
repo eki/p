@@ -26,14 +26,6 @@ module P
       end
     end
 
-    receive( :default_to_string ) do |env| 
-      if P.true?( r_send( :respond_to?, :to_literal ) )
-        r_send( :to_literal )
-      else
-        '(Suggestion: add a to_string or to_literal to all your objects)'
-      end
-    end
-
     receive( :new, 'f' ) do |env|
       P.object.r_send( :clone, env[:f] )
     end
