@@ -90,7 +90,7 @@ module P
         elsif arg = list[i]
           to_env.bind( p.name, arg.to_p )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( environment ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ) )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end
@@ -106,7 +106,7 @@ module P
         elsif arg = hash.find { |k,v| p.name === k }
           to_env.bind( p.name, arg.last.to_p )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( environment ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ) )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end

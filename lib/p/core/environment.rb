@@ -140,7 +140,11 @@ module P
     end
 
     def inspect
-      "(#{bindings.map { |b| b.inspect }.join( ', ' )})"
+      is = bindings.map do |b| 
+        (b.value == self ? Binding.copy( b, value: '...'.to_p ) : b)
+      end
+
+      "(#{is.map { |b| b.inspect }.join( ', ' )})"
     end
 
     def to_s
@@ -167,6 +171,7 @@ module P
         bind( :puts,     P.nf( :puts ) )
         bind( :new,      P.nf( :new ) )
         bind( :inspect,  P.nf( :inspect ) )
+        bind( :require,  P.nf( :require ) )
       end
     end
   end

@@ -20,7 +20,7 @@ module P
         elsif arg = list[i]
           to_env.bind( p.name, arg.evaluate( environment ) )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( environment ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ) )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end
@@ -43,7 +43,7 @@ module P
         elsif arg = list.find { |pair| p.name === pair.left.to_sym }
           to_env.bind( p.name, arg.right.evaluate( environment ) )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( environment ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ) )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end

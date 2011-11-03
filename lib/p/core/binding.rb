@@ -9,6 +9,12 @@ module P
       @name, @value, @mutable = name, value, !! mutable
     end
 
+    def self.copy( binding, opts={} )
+      new( opts[:name]  || binding.name, 
+           opts[:value] || binding.value, 
+           opts.key?( :mutable? ) ? opts[:mutable?] : binding.mutable? )
+    end
+
     def mutable?
       @mutable
     end

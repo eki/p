@@ -30,6 +30,30 @@ module P
       P.object.r_send( :clone, env[:f] )
     end
 
+    receive( :require, 'path, environment: ?' ) do |env|
+      fname = "/home/eki/projects/p/p_lib/#{env[:path]}.p"
+      if File.file?( fname )
+        c = open( fname, 'r' ).read
+        tree = P.parse( c )
+        exec_env = Environment.new
+        o = tree.evaluate( exec_env )
+
+        if P.true?( ae = env[:environment] )
+          exec_env.bindings.each do |b|
+            unless ae.defined?( b.name )
+              if b.mutable?
+                ae.set( b.name, b.value )
+              else
+                ae.bind( b.name, b.value )
+              end
+            end
+          end
+        end
+
+        o
+      end 
+    end
+
     def []( name )
       _get( name )
     end
