@@ -2,7 +2,7 @@
 module P
 
   class Environment < Object
-    attr_reader :parent, :bindings, :p_self
+    attr_reader :parent, :bindings
 
     def initialize( parent=Environment.top, &block )
       @parent = parent
@@ -14,6 +14,10 @@ module P
     def p_self=( object )
       @p_self = object
       bind( :self, object )
+    end
+
+    def p_self
+      @p_self || (parent && parent.p_self)
     end
 
     def bind( name, value )

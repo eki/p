@@ -155,13 +155,13 @@ module P
       end
     end
 
-    def p_send( name, args, args_env )
+    def p_send( name, args, args_env, p_self=self )
       if receiver = _local_get( name )
-        receiver.call( args, args_env, self )
+        receiver.call( args, args_env, p_self )
       elsif prototype
-        prototype.p_send( name, args, args_env )
+        prototype.p_send( name, args, args_env, self )
       else
-        p_send( :method_missing, args, args_env )
+        p_send( :method_missing, args, args_env, self )
       end
     end
 
@@ -171,7 +171,7 @@ module P
 
     def call( args, args_env, p_self=nil )
       if o = _get( :call )
-        p_send( :call, args, args_env )
+        p_send( :call, args, args_env, p_self )
       else
         self
       end
