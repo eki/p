@@ -31,13 +31,23 @@ module P
       t
     end
 
+    def rename_last_token( context )
+      rule = rules_for( context ).find do |r| 
+        last_token =~ /^#{r[:regexp]}$/
+      end
+
+      if rule && ! (rule[:name] === last_token)
+        last_token.rename( rule[:name] )
+      end 
+    end
+
     def to_a
       ary = []
       ary << next_token until eos?
       ary
     end
 
-    def next_token
+    def next_token( context )
       return nil  if eos?
 
       scanner = StringScanner.new( source )
@@ -46,7 +56,7 @@ module P
       token = nil
 
       until token || scanner.eos?
-        rules.any? do |r|
+        rules_for( context ).any? do |r|
           if (! r[:empty] || last_token.nil?) && m = scanner.scan( r[:regexp] )
             if g = r[:indent]
               @indent = scanner[g].length
@@ -79,16 +89,27 @@ module P
       end
     end
 
-    def rules
-      self.class.rules
+    def rules_for( context )
+      self.class.rules[context] || self.class.rules[:default]
     end
 
     def self.rules
-      @rules ||= []
+      @rules ||= {}
+    end
+
+    def self.context( name=nil )
+      if block_given? && name
+        old, @context = @context, name
+        yield
+        @context = old
+      else
+        @context || :default
+      end
     end
 
     def self.add( name, regexp, opts={} )
-      self.rules << opts.merge( name: name, regexp: regexp )
+      rules[context] ||= []
+      rules[context] << opts.merge( name: name, regexp: regexp )
     end
 
     def inspect
@@ -98,131 +119,160 @@ module P
     def to_s
       inspect
     end
-  end
 
-  class CodeScanner < Scanner
-    add( :start,              /( *\n)*( *)/m,   empty: true, indent: 2 )
-    add( :nil,                /nil/                                    )
-    add( :true,               /true/,                                  )
-    add( :false,              /false/,                                 )
-    add( :number,             /\d+(\.\d+)?/,                           )
+    context( :default ) do
+      add( :start,              /( *\n)*( *)/m,   empty: true, indent: 2 )
+      add( :nil,                /nil/                                    )
+      add( :true,               /true/,                                  )
+      add( :false,              /false/,                                 )
+      add( :number,             /\d+(\.\d+)?/,                           )
 
-    add( :semicolon,          /;/,                                     )
-    add( :newline,            /[\n ]*\n( *)/m,               indent: 1 )
+      add( :semicolon,          /;/,                                     )
+      add( :newline,            /[\n ]*\n( *)/m,               indent: 1 )
 
-    add( :if,                 /if/,                                    )
-    add( :unless,             /unless/,                                )
-    add( :else,               /else/,                                  )
-    add( :while,              /while/,                                 )
-    add( :until,              /until/,                                 )
-    add( :fn,                 /->/,                                    )
+      add( :if,                 /if/,                                    )
+      add( :unless,             /unless/,                                )
+      add( :else,               /else/,                                  )
+      add( :while,              /while/,                                 )
+      add( :until,              /until/,                                 )
+      add( :fn,                 /->/,                                    )
 
-    add( :comp,               /[<][=][>]/,                             )
+      add( :comp,               /[<][=][>]/,                             )
 
-    add( :or_assign,          /[|][|][=]/,                             )
-    add( :and_assign,         /[&][&][=]/,                             )
+      add( :or_assign,          /[|][|][=]/,                             )
+      add( :and_assign,         /[&][&][=]/,                             )
 
-    add( :exp,                /[*][*]/,                                )
-    add( :single_assign,      /[:][=]/,                                )
-    add( :gte,                /[>][=]/,                                )
-    add( :lte,                /[<][=]/,                                )
-    add( :eq,                 /[=][=]/,                                )
-    add( :neq,                /[!][=]/,                                )
-    add( :and,                /[&][&]/,                                )
-    add( :or,                 /[|][|]/,                                )
-    add( :lshift,             /[<][<]/,                                )
-    add( :rshift,             /[>][>]/,                                )
+      add( :exp,                /[*][*]/,                                )
+      add( :single_assign,      /[:][=]/,                                )
+      add( :gte,                /[>][=]/,                                )
+      add( :lte,                /[<][=]/,                                )
+      add( :eq,                 /[=][=]/,                                )
+      add( :neq,                /[!][=]/,                                )
+      add( :and,                /[&][&]/,                                )
+      add( :or,                 /[|][|]/,                                )
+      add( :lshift,             /[<][<]/,                                )
+      add( :rshift,             /[>][>]/,                                )
 
-    add( :add_assign,         /[+][=]/,                                )
-    add( :sub_assign,         /[-][=]/,                                )
-    add( :mult_assign,        /[*][=]/,                                )
-    add( :div_assign,         /\/[=]/,                                 )
-    add( :modulo_assign,      /[%][=]/,                                )
-    add( :bor_assign,         /[|][=]/,                                )
-    add( :xor_assign,         /\^[=]/,                                 )
-    add( :band_assign,        /[&][=]/,                                )
-    add( :bnot_assign,        /[~][=]/,                                )
+      add( :add_assign,         /[+][=]/,                                )
+      add( :sub_assign,         /[-][=]/,                                )
+      add( :mult_assign,        /[*][=]/,                                )
+      add( :div_assign,         /\/[=]/,                                 )
+      add( :modulo_assign,      /[%][=]/,                                )
+      add( :bor_assign,         /[|][=]/,                                )
+      add( :xor_assign,         /\^[=]/,                                 )
+      add( :band_assign,        /[&][=]/,                                )
+      add( :bnot_assign,        /[~][=]/,                                )
 
-    add( :add,                /[+]/,                                   )
-    add( :sub,                /[-]/,                                   )
-    add( :mult,               /[*]/,                                   )
-    add( :div,                /\//,                                    )
-    add( :modulo,             /[%]/,                                   )
+      add( :add,                /[+]/,                                   )
+      add( :sub,                /[-]/,                                   )
+      add( :mult,               /[*]/,                                   )
+      add( :div,                /\//,                                    )
+      add( :modulo,             /[%]/,                                   )
 
-    add( :assign,             /[=]/,                                   )
+      add( :assign,             /[=]/,                                   )
 
-    add( :gt,                 /[>]/,                                   )
-    add( :lt,                 /[<]/,                                   )
-    add( :not,                /[!]/,                                   )
-    add( :bnot,               /[~]/,                                   )
-    add( :band,               /[&]/,                                   )
-    add( :bor,                /[|]/,                                   )
-    add( :xor,                /\^/,                                    )
+      add( :gt,                 /[>]/,                                   )
+      add( :lt,                 /[<]/,                                   )
+      add( :not,                /[!]/,                                   )
+      add( :bnot,               /[~]/,                                   )
+      add( :band,               /[&]/,                                   )
+      add( :bor,                /[|]/,                                   )
+      add( :xor,                /\^/,                                    )
 
-    add( :question,           /[?]/,                                   )
-    add( :colon,              /:/,                                     )
+      add( :question,           /[?]/,                                   )
+      add( :colon,              /:/,                                     )
 
-    add( :dot,                /[.]/,                                   )
-    add( :comma,              /[,]/,                                   )
+      add( :dot,                /[.]/,                                   )
+      add( :comma,              /[,]/,                                   )
 
-    add( :open_paren,         /\(/,                                    )
-    add( :close_paren,        /\)/,                                    )
+      add( :open_paren,         /\(/,                                    )
+      add( :close_paren,        /\)/,                                    )
 
-    add( :open_curly,         /\{/,                                    )
-    add( :close_curly,        /\}/,                                    )
+      add( :open_curly,         /\{/,                                    )
+      add( :close_curly,        /\}/,                                    )
 
-    add( :open_square,        /\[/,                                    )
-    add( :close_square,       /\]/,                                    )
+      add( :open_square,        /\[/,                                    )
+      add( :close_square,       /\]/,                                    )
 
-    add( :double_quote,       /"/,                                     )
-    add( :single_quote,       /'/,                                     )
-    add( :backtick,           /`/,                                     )
+      add( :double_quote,       /"/,                                     )
+      add( :single_quote,       /'/,                                     )
+      add( :backtick,           /`/,                                     )
 
-    add( :id,                 /[@a-zA-Z_][\w]*[?]?/,                   )
+      add( :id,                 /[@a-zA-Z_][\w]*[?]?/,                   )
 
-    add( :comment,            /#\W[^\n]*/,                             )
+      add( :comment,            /#\W[^\n]*/,                             )
 
-    add( :whitespace,         / +/,                          nop: true )
-  end
+      add( :whitespace,         / +/,                          nop: true )
+    end
 
-  class InterpolatedStringScanner < Scanner
-    add( :double_quote,       /"/,                                     )
-    add( :esc_newline,        /\\n/,                                   )
-    add( :esc_backslash,      /\\\\/,                                  )
-    add( :esc_tab,            /\\t/,                                   )
-    add( :esc_other,          /\\./,                                   )
-    add( :open_interp,        /[#][{]/,                                )
-    add( :character,          /./,                                     )
-  end
+    context( :dot ) do
+      add( :id,                 /[@a-zA-Z_][\w]*[?]?/)
 
-  class UninterpolatedStringScanner < Scanner
-    add( :single_quote,       /'/,                                     )
-    add( :esc_single_quote,   /\\'/,                                   )
-    add( :esc_backslash,      /\\\\/,                                  )
-    add( :character,          /./,                                     )
-  end
+      add( :id,                 /[<][=][>]/          )  # :comp
 
-  class SinglePrefixScanner < Scanner
-    add( :colon,              /:/,                                     )
-    add( :whitespace,         /\s/,                                    )
-    add( :close,              /[)}\],]/,                               )
-    add( :character,          /./,                                     )
-  end
+      add( :id,                 /[*][*]/             )  # :exp
 
-  class DoublePrefixScanner < Scanner
-    add( :colon,              /:/,                                     )
-    add( :whitespace,         /\s/,                                    )
-    add( :close,              /\n/,                                    )
-    add( :open_interp,        /[#][{]/,                                )
-    add( :character,          /./,                                     )
-  end
+      add( :id,                 /[>][=]/             )  # :gte
+      add( :id,                 /[<][=]/             )  # :lte
+      add( :id,                 /[=][=]/             )  # :eq
 
-  class TriplePrefixScanner < Scanner
-    add( :colon,              /:/,                                     )
-    add( :newline,            /\n/,                                    )
-    add( :whitespace,         /\s/,                                    )
-    add( :open_interp,        /[#][{]/,                                )
-    add( :character,          /./,                                     )
+      add( :id,                 /[<][<]/             )  # :lshift
+      add( :id,                 /[>][>]/             )  # :rshift
+
+      add( :id,                 /[+]/                )  # :add
+      add( :id,                 /[-]/                )  # :sub
+      add( :id,                 /[*]/                )  # :mult
+      add( :id,                 /\//                 )  # :div
+      add( :id,                 /[%]/                )  # :modulo
+
+      add( :id,                 /[>]/                )  # :gt
+      add( :id,                 /[<]/                )  # :lt
+      add( :id,                 /[&]/                )  # :band
+      add( :id,                 /[|]/                )  # :bor
+      add( :id,                 /\^/                 )  # :xor
+
+      add( :whitespace,         / +/,                          nop: true )
+    end
+
+    context( :double_quote ) do
+      add( :double_quote,       /"/,                                     )
+      add( :esc_newline,        /\\n/,                                   )
+      add( :esc_backslash,      /\\\\/,                                  )
+      add( :esc_tab,            /\\t/,                                   )
+      add( :esc_other,          /\\./,                                   )
+      add( :open_interp,        /[#][{]/,                                )
+      add( :character,          /./,                                     )
+    end
+
+    context( :single_quote ) do
+      add( :single_quote,       /'/,                                     )
+      add( :esc_single_quote,   /\\'/,                                   )
+      add( :esc_backslash,      /\\\\/,                                  )
+      add( :character,          /./,                                     )
+    end
+
+    context( :single_colon ) do
+      #add( :colon,              /:/,                                     )
+      add( :whitespace,         /\s/,                                    )
+      add( :close,              /[)}\],\.]/,                             )
+      add( :character,          /./,                                     )
+    end
+
+    context( :double_colon ) do
+      add( :colon,              /:/,                                     )
+      add( :whitespace,         /\s/,                                    )
+      add( :close,              /\n/,                                    )
+      add( :open_interp,        /[#][{]/,                                )
+      add( :character,          /./,                                     )
+    end
+
+    context( :triple_colon ) do
+      add( :colon,              /:/,                                     )
+      add( :newline,            /\n/,                                    )
+      add( :whitespace,         /\s/,                                    )
+      add( :open_interp,        /[#][{]/,                                )
+      add( :character,          /./,                                     )
+    end
   end
 end
 

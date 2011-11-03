@@ -28,6 +28,14 @@ module P
       o && o.respond_to?( :to_sym ) && name == o.to_sym
     end
 
+    def =~( p )
+      value =~ p
+    end
+
+    def rename( name )
+      @name = name.to_sym
+    end
+
     def method_missing( m, *args, &block )
       if m.to_s =~ /(.*)\?$/
         name.to_s == $1

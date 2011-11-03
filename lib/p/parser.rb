@@ -130,12 +130,13 @@ module P
   end
 
   class Parser
-    attr_reader :source, :scanner
+    attr_reader :source, :scanner, :context
 
     def initialize( source )
       @source = source
-      @scanner = CodeScanner.new( source )
-      @scanner.next_token
+      @scanner = Scanner.new( source )
+      @context = :default
+      @scanner.next_token( context )
     end
 
     def parse
@@ -277,17 +278,22 @@ module P
       end
     end
 
+    def parse_string
+      parse_interpolated_string || parse_uninterpolated_string ||
+      parse_single_prefix_string
+    end
+
     def parse_interpolated_string
-      return false  unless top === :double_quote
+      return false  unless switch_context( :double_quote )
 
       s, ary = '', []
-      ss = InterpolatedStringScanner.new( source, scanner.position )
 
-      while t = ss.next_token
+      while t = switch_context( :default, :open_interp )  || 
+                switch_context( :default, :double_quote ) || consume( top )
+
         case
           when t === :double_quote
             ary << Expr.string( s )  unless s.empty?
-            @scanner.position = ss.position
             break
           when t === :esc_newline
             s << "\n"
@@ -299,18 +305,14 @@ module P
             s << t.value[1..2]
           when t === :open_interp
             ary << Expr.string( s )  unless s.empty?
-
-            scanner.position = ss.position
-            scanner.next_token
+            s = ''
 
             ary << parse_expression
 
-            unless top === :close_curly
+            unless switch_context( :double_quote, :close_curly )
               raise "Expected end of string interpolation!"
             end
             
-            ss.position = scanner.position
-            s = ''
           when t === :character
             s << t.value
 
@@ -318,29 +320,17 @@ module P
         end
       end
 
-      scanner.position = ss.position
-      scanner.next_token
-
-      consume( :double_quote )
-
       Expr.interp_string( *ary )
     end
 
-    def parse_string
-      parse_interpolated_string || parse_uninterpolated_string ||
-      parse_single_prefix_string
-    end
-
     def parse_uninterpolated_string
-      return false  unless top === :single_quote
+      return false  unless switch_context( :single_quote )
 
       s = ''
-      ss = UninterpolatedStringScanner.new( source, scanner.position )
 
-      while t = ss.next_token
+      while t = switch_context( :default, :single_quote ) || consume( top )
         case
           when t === :single_quote
-            @scanner.position = ss.position
             break
           when t === :esc_single_quote
             s << "'"
@@ -353,30 +343,26 @@ module P
         end
       end
 
-      scanner.position = ss.position
-      scanner.next_token
-
-      consume( :single_quote )
-
       Expr.string( s )
     end
 
     def parse_single_prefix_string
-      return false  unless top === :colon
+      return false  unless switch_context( :single_colon, :colon )
 
-      p = scanner.position
       s = ''
-      ss = SinglePrefixScanner.new( source, p )
 
-      while t = ss.next_token
+      while t = switch_context( :default, :whitespace )            ||
+                switch_context( :default, :end )                   ||
+                switch_context( :default, :close, consume: false ) ||
+                consume( top )
+
         case
-          when t === :colon && s.empty?
-            scanner.position = ss.position
-            return parse_double_prefix_string
-          when t === :whitespace || t === :end || t === :close
+          when t === :close
+            scanner.rename_last_token( context )
             break
-          when t === :character || t === :colon
-            scanner.position = ss.position
+          when t === :whitespace || t === :end
+            break
+          when t === :character
             s << t.value
 
           else raise "Unexpected token in symbol: #{t.name}:#{t}"
@@ -384,13 +370,13 @@ module P
       end
 
       unless s.empty?
-        scanner.next_token
-
         Expr.string( s )
       end
     end
 
     def parse_double_prefix_string
+      retur nil
+
       p = scanner.position
       s, ws, ary = '', '', []
       ss = DoublePrefixScanner.new( source, p )
@@ -444,6 +430,8 @@ module P
     end
 
     def parse_triple_prefix_string
+      return nil
+
       p = scanner.position
       s, ws, ary = '', '', []
       mi, i = top.indent, nil
@@ -518,9 +506,19 @@ module P
       Expr.interp_string( *ary )
     end
 
+    def switch_context( context, token=context, opts={ consume: true } )
+      if top === token
+        @context = context
+
+        scanner.rename_last_token( context )  if opts[:rename]
+
+        opts[:consume] ? consume( token ) : top
+      end
+    end
+
     def consume( token )
       if top === token
-        scanner.next_token
+        scanner.next_token( context )
         token
       end
     end
