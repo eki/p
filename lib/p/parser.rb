@@ -653,10 +653,6 @@ module P
       infix( :open_paren, '*', :right, 
         right_optional: :close_paren ) do |t,left,right|
 
-        unless left.id? || left.fn? || left.call?
-          raise "Function calls require id or fn or call, not #{left}"
-        end
-
         raise "Expected ) got #{t}"  unless consume( :close_paren )
 
         if right
