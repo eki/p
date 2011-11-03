@@ -172,7 +172,7 @@ module P
 
       indent = top.indent
 
-      if expr = parse_disjoint
+      if expr = parse_expression
         block = [expr]
       else
         raise "Failed to parse_block at #{top.name}:#{top}"
@@ -180,7 +180,7 @@ module P
 
       while parse_line_separator
         if top.indent == indent
-          block << parse_disjoint
+          block << parse_expression
         elsif top.indent < indent
           return Expr.block( *block )
         elsif top.indent > indent
@@ -191,44 +191,9 @@ module P
       Expr.block( *block )
     end
 
-    DISJOINT = {
-      number: true,
-      id: true,
-      true: true,
-      false: true,
-      nil: true,
-      mult: true,
-      exp: true,
-      open_paren: true,
-      open_curly: true,
-      open_square: true
-    }
-
-    def disjoint?
-      DISJOINT[top.name]
-    end
-
-    def parse_disjoint( rule=nil )
-      indent = top.indent
-      exprs  = []
-
-      while top.indent == indent
-        exprs << parse_expression( nil, rule )
-
-        break  unless disjoint?
-      end
-
-      case exprs.length
-        when 0  then false
-        when 1  then exprs.first
-        else         Expr.disjoint( *exprs )
-      end
-    end
-
     def parse_expression( expr=nil, rule=nil )
       value = expr || parse_rule( :prefix ) || parse_rule( :value ) ||
-        parse_interpolated_string || parse_uninterpolated_string ||
-        parse_single_prefix_string
+        parse_string
 
       unless value
         if top === :end
@@ -263,7 +228,7 @@ module P
         consume( :else )
         if parse_line_separator
           parse_block( indent )  or raise "Else without properly indented block"
-        elsif e = parse_disjoint
+        elsif e = parse_expression
           Expr.block( e )
         end
       end
@@ -281,7 +246,7 @@ module P
           right = parse_block( t.indent )
         elsif ! (r.right_optional? && top === r.right_optional)
           consume( :newline )
-          right = parse_disjoint( r )
+          right = parse_expression( nil, r )
         end
 
         unless right || r.right_optional?
@@ -293,7 +258,7 @@ module P
     end
 
     def parse_statement( statement, token )
-      if condition = parse_disjoint
+      if condition = parse_expression
         if top === :newline && parse_line_separator
           if block = parse_block( token.indent )
             if block_given?
@@ -338,7 +303,7 @@ module P
             scanner.position = ss.position
             scanner.next_token
 
-            ary << parse_disjoint
+            ary << parse_expression
 
             unless top === :close_curly
               raise "Expected end of string interpolation!"
@@ -359,6 +324,11 @@ module P
       consume( :double_quote )
 
       Expr.interp_string( *ary )
+    end
+
+    def parse_string
+      parse_interpolated_string || parse_uninterpolated_string ||
+      parse_single_prefix_string
     end
 
     def parse_uninterpolated_string
@@ -441,7 +411,7 @@ module P
             scanner.position = ss.position
             scanner.next_token
 
-            ary << parse_disjoint
+            ary << parse_expression
 
             unless top === :close_curly
               raise "Expected end of string interpolation!"
@@ -506,7 +476,7 @@ module P
             scanner.position = ss.position
             scanner.next_token
 
-            ary << parse_disjoint
+            ary << parse_expression
 
             unless top === :close_curly
               raise "Expected end of string interpolation!"
@@ -642,7 +612,7 @@ module P
 
       infix( :question, 7 ) do |t,left,right|
         if consume( :colon )
-          if e = parse_disjoint( Rule.new( :eif, 4 ) )
+          if e = parse_expression( nil, Rule.new( :eif, 4 ) )
             Expr.if( left, right, e )
           else
             raise "Couldn't find else conditional to complete ?:"
@@ -700,7 +670,7 @@ module P
         if consume( :close_paren )
           expr = nil
         else
-          expr = parse_disjoint
+          expr = parse_expression
 
           # I don't think it's possible to reach this line... (?)
           raise "Expected ) got #{t}"  unless consume( :close_paren )
@@ -710,7 +680,7 @@ module P
       end
 
       prefix( :open_curly ) do |t|
-        expr = parse_disjoint
+        expr = parse_expression
 
         raise "Expected } got #{t}"  unless consume( :close_curly )
 
@@ -730,7 +700,7 @@ module P
       end
 
       prefix( :open_square ) do |t|
-        expr = parse_disjoint
+        expr = parse_expression
 
         raise "Expected ] got #{t}"  unless consume( :close_square )
 
@@ -740,7 +710,7 @@ module P
       prefix( :fn ) do |t|
         if top === :newline && parse_line_separator
           Expr.fn( Expr.params, parse_block( t.indent ) )
-        elsif expr = parse_disjoint
+        elsif expr = parse_expression
           Expr.fn( Expr.params, Expr.block( expr ) )
         else
           Expr.fn( Expr.params, Expr.block )
