@@ -7,7 +7,7 @@ module P
     attr_reader   :source, :last_token, :scanner
     attr_accessor :position, :line, :character, :indent
 
-    def initialize( source, position=0, line=0, character=0 )
+    def initialize( source, position=0, line=1, character=0 )
       @source, @position, @line, @character = source, position, line, character
 
       @scanner = StringScanner.new( source )
@@ -124,6 +124,8 @@ module P
       add( :number,             /\d+(\.\d+)?/,                           )
 
       add( :semicolon,          /;/,                                     )
+
+      add( :comment,            /[\n ]*(#\W[^\n]*\n)*#\W[^\n]*/, nop: true )
       add( :newline,            /[\n ]*\n( *)/m,               indent: 1 )
 
       add( :if,                 /if/,                                    )
@@ -198,8 +200,6 @@ module P
       add( :backtick,           /`/,                                     )
 
       add( :id,                 /[@a-zA-Z_][\w]*[?]?/,                   )
-
-      add( :comment,            /#\W[^\n]*/,                             )
 
       add( :whitespace,         / +/,                          nop: true )
     end

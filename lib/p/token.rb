@@ -10,10 +10,14 @@ module P
     end
 
     def inspect
-    # i = ", indent: #{indent}"  if indent
       v = value.gsub( /\n/, '\\n' )
-    # "<Token #{name}='#{v}', #{line}:#{character}#{i}>"
       %Q("#{v}")
+    end
+
+    def debug
+      i = ", indent: #{indent}"  if indent
+      v = value.gsub( /\n/, '\\n' )
+      "<Token #{name}='#{v}', #{line}:#{character}#{i}>"
     end
 
     def to_s

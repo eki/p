@@ -173,6 +173,8 @@ module P
 
       indent = top.indent
 
+      consume( top )  while top == :newline
+
       if expr = parse_expression
         block = [expr]
       else
@@ -180,8 +182,15 @@ module P
       end
 
       while parse_line_separator
+        consume( top )  while top === :newline
+
         if top.indent == indent
-          block << parse_expression
+          while top.indent == indent
+            consume( top )  while top === :newline
+            break              if top === :close_paren || top === :end
+
+            block << parse_expression
+          end
         elsif top.indent < indent
           return Expr.block( *block )
         elsif top.indent > indent
@@ -200,7 +209,7 @@ module P
         if top === :end
           raise UnexpectedEndError.new
         else
-          raise "Unexpected token: #{top.name}:#{top}"
+          raise "Unexpected token: #{top.debug}"
         end
       end
 
@@ -251,7 +260,7 @@ module P
         end
 
         unless right || r.right_optional?
-          raise "Infix operator without right side!"
+          raise "Infix operator without right side! #{top.debug} :: #{t.debug}"
         end
 
         r.exec( self, t, left, right )
@@ -627,7 +636,7 @@ module P
       infix( :open_paren, '*', :right, 
         right_optional: :close_paren ) do |t,left,right|
 
-        raise "Expected ) got #{t}"  unless consume( :close_paren )
+        raise "Expected ) got #{top.debug}"  unless consume( :close_paren )
 
         if right
           Expr.call( left, right.to_args )
