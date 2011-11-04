@@ -13,6 +13,13 @@ module P
         else
           P.nil
         end
+      elsif first.send?
+        name = first.list[1].to_sym
+        if o = first.list[0].evaluate( environment )._get( name )
+          o
+        else
+          P.nil
+        end
       end
     end
   end
