@@ -26,14 +26,6 @@ module P
       end
     end
 
-    def skip( token )
-      t = next_token
-      while t === token && ! eos?
-        t = next_token
-      end
-      t
-    end
-
     def unscan
       scanner.unscan
     end
