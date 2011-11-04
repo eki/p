@@ -20,16 +20,12 @@ module P
   def self.true
     @true ||= Object.build do
       bind( 'to_literal', %q( () -> 'true' ) )
-
-      bind( '==', fn( '(o)' ) { |env| env[:o] == P.true } )
     end
   end
 
   def self.false
     @false ||= Object.build do
       bind( 'to_literal', %q( () -> 'false' ) )
-
-      bind( '==', fn( '(o)' ) { |env| env[:o] == P.false } )
     end
   end
 
@@ -37,8 +33,7 @@ module P
     @nil ||= Object.build do
       bind( 'to_string',  %q( () -> '' ) )
       bind( 'to_literal', %q( () -> 'nil' ) )
-
-      bind( '==', fn( '(o)' ) { |env| env[:o] == P.nil } )
+      bind( :nil?,        %q( () -> true ) )
     end
   end
 

@@ -77,8 +77,7 @@ module P
     end
 
     def self.receive( name, obj=nil, &block )
-      @receive_capture ||= {}
-      @receive_capture[name.to_sym] = [obj, block]
+      receive_capture[name.to_sym] = [obj, block]
     end
 
     def self.r_get( name, obj=nil, &block )
@@ -107,21 +106,40 @@ module P
       end
     end
 
+    def self.receive_capture
+      @receive_capture ||= {}
+    end
+
     def self.p_get( name )
       name               = name.to_sym
       @receive         ||= {}
-      @receive_capture ||= {}
 
       if @receive[name]
         @receive[name]
 
-      elsif @receive_capture.key?( name )
-        obj, block = @receive_capture[name]
+      elsif receive_capture.key?( name )
+        obj, block = receive_capture[name]
 
         r_get( name, obj, &block )
       elsif superclass.respond_to?( :p_get )
         superclass.p_get( name )
       end
+    end
+
+    def _receive
+      self.class.receive_capture.keys
+    end
+
+    def slots
+      _bindings.map { |b| b.name } + _receive
+    end
+
+    def methods
+      slots.reject { |n| n.to_s =~ /^@/ }
+    end
+
+    def instance_variables
+      slots.select { |n| n.to_s =~ /^@/ }
     end
 
     def prototype
@@ -140,9 +158,11 @@ module P
     def _local_get( name )
       if binding = _bindings.find { |b| b.name == name.to_sym }
         binding.value
-      elsif o = self.class.p_get( name )
-        o
       end
+    end
+
+    def _p_get( name )
+      self.class.p_get( name )
     end
 
     def _get( name )
@@ -173,15 +193,22 @@ module P
     #   3.  Create base object that (may) receive and can act as a prototype.
     #   4.  _local_get needs to be expanded below, use p_self with actual
     #       bound objects, use self with p_get native functions.
+    #
+    # This solution is still not perfect, because it means p_get native
+    # functions cannot use p_send to discover fields in their clones -- but
+    # none of the native objects do this now.
 
 
     def p_send( name, args, args_env, p_self=self )
       if receiver = _local_get( name )
         receiver.call( args, args_env, p_self )
+      elsif receiver = _p_get( name )
+        receiver.call( args, args_env, self )
       elsif prototype
-        prototype.p_send( name, args, args_env, self )
+        prototype.p_send( name, args, args_env, p_self || self )
       else
-        p_send( :method_missing, args, args_env, self )
+        # method missing args should include the name!
+        p_send( :method_missing, args, args_env, p_self || self )
       end
     end
 
@@ -228,35 +255,47 @@ module P
     def to_p
       self
     end
-
-
-    # NOTE:  Adding all of these as receive defeats the purpose of prototype
-    #        lookup.  Every object created with ObjectBuilder or Object.new
-    #        will respond directly to :to_string, for example.  This means
-    #        we'll never find to_string in the prototype chain.
-
-
-    receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }
-    receive( :to_list   ) { |env| P.list( self ) }
-    receive( :to_string ) { |env| '' }
-    receive( :prototype ) { |env| prototype || P.nil }
-    receive( :methods   ) { |env| _bindings.map { |b| b.name } }
-
-    receive( :respond_to?,    'name'    ) { |env| !! _get( env[:name] ) }
-    receive( :method_missing, 'args: *' ) { |env| P.nil }
-
-    receive( :clone, 'f' ) do |env|
-      f = env[:f]
-
-      e = Environment.new
-      f.r_eval( [], e )       # e will contain the bindings created by f
-
-      Object.new( prototype: self, bindings: e.bindings )
-    end
   end
 
   def self.object
-    @object ||= Object.new( prototype: nil )
+    @object ||= Object.build( prototype: nil ) do
+      bind( :to_list,        fn { |env| P.list( self ) } )
+
+      bind( :to_string,      fn do |env| '' 
+        if P.true?( r_send( :respond_to?, :to_literal ) )
+          r_send( :to_literal )
+        else
+          ''
+        end
+      end )
+
+      bind( :prototype,          fn { |env| prototype } )
+      bind( :identity,           fn { |env| object_id } )
+      bind( :methods,            fn { |env| methods } )
+      bind( :instance_variables, fn { |env| instance_variables } )
+      bind( :nil?,               %q( () -> false ) )
+
+      bind( :==,             fn( 'o' )       { |env| self == env[:o] } )
+      bind( :respond_to?,    fn( 'name' )    { |env| !! _get( env[:name] ) } )
+
+      bind( :method_missing, fn( 'args: *' ) do |env| 
+        if P.true?( env[:args].r_send( :empty? ) )
+          P.nil
+        else
+          raise "Method Missing Error!"
+        end
+      end )
+
+      bind( :clone, fn( 'f' ) do |env|
+        f = env[:f]
+
+        e = Environment.new
+        f.r_eval( [], e )       # e will contain the bindings created by f
+
+        Object.new( prototype: self, bindings: e.bindings )
+      end )
+
+    end
   end
 
 end
