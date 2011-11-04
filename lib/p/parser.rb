@@ -241,7 +241,7 @@ module P
       r = RULES.for( :infix, top )
 
       if r && (! rule || r > rule)
-        t = consume( top )
+        t = consume( top, top.name )
 
         if r.block? && top === :newline && parse_line_separator
           right = parse_block( t.indent )
@@ -491,7 +491,7 @@ module P
       end
     end
 
-    def consume( token )
+    def consume( token, context=context )
       if top === token
         t = top
         scanner.next_token( context )
