@@ -66,6 +66,12 @@ module P
     def set( name, value )
       name = name.to_sym
 
+      if p_self && binding = p_self._binding_for( name )
+        if binding.mutable?
+          return binding.value = value
+        end
+      end
+
       if parent && binding = parent.binding_for( name )
         if binding.mutable?
           return binding.value = value

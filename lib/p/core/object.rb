@@ -175,6 +175,11 @@ module P
       end
     end
 
+    def _binding_for( name )
+      _bindings.find { |b| b.name == name.to_sym } ||
+       (prototype && prototype._binding_for( name ))
+    end
+
 
     # NOTE:  p_send takes an optional p_self argument.  This is used when doing
     #        prototype chaining so, if the prototype then performs a dependent
