@@ -291,13 +291,24 @@ module P
         end
       end )
 
-      bind( :clone, fn( 'f' ) do |env|
+      bind( :clone, fn( 'f: ?' ) do |env|
         f = env[:f]
 
-        e = Environment.new
-        f.r_eval( [], e )       # e will contain the bindings created by f
+        if P.true?( f )
+          e = Environment.new
+          f.r_eval( [], e )       # e will contain the bindings created by f
+          bindings = e.bindings
+        else
+          bindings = []
+        end
 
-        Object.new( prototype: self, bindings: e.bindings )
+        instance_variables.each do |ivar|
+          unless bindings.any? { |b| b.name == ivar } 
+            bindings << Binding.copy( _binding_for( ivar ) )
+          end
+        end
+
+        Object.new( prototype: self, bindings: bindings )
       end )
 
     end
