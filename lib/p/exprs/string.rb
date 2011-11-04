@@ -5,7 +5,11 @@ module P
     def evaluate( environment )
       P.string( value )
     end
-  end
 
+    def to_s
+      %Q("#{value.gsub( /\n/, '\n' )}")
+    end
+
+  end
 end
 

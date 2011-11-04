@@ -4,11 +4,14 @@ module P
   class Scanner
     include Enumerable
 
-    attr_reader   :source, :last_token
+    attr_reader   :source, :last_token, :scanner
     attr_accessor :position, :line, :character, :indent
 
     def initialize( source, position=0, line=0, character=0 )
       @source, @position, @line, @character = source, position, line, character
+
+      @scanner = StringScanner.new( source )
+      @scanner.pos = position
     end
 
     def eos?
@@ -31,6 +34,10 @@ module P
       t
     end
 
+    def unscan
+      scanner.unscan
+    end
+
     def rename_last_token( context )
       rule = rules_for( context ).find do |r| 
         last_token =~ /^#{r[:regexp]}$/
@@ -49,9 +56,6 @@ module P
 
     def next_token( context )
       return nil  if eos?
-
-      scanner = StringScanner.new( source )
-      scanner.pos = position
 
       token = nil
 
@@ -179,6 +183,9 @@ module P
       add( :bor,                /[|]/,                                   )
       add( :xor,                /\^/,                                    )
 
+      add( :triple_colon,       /:::/,                                   )
+      add( :double_colon,       /::/,                                    )
+
       add( :question,           /[?]/,                                   )
       add( :colon,              /:/,                                     )
 
@@ -252,23 +259,20 @@ module P
     end
 
     context( :single_colon ) do
-      #add( :colon,              /:/,                                     )
       add( :whitespace,         /\s/,                                    )
       add( :close,              /[)}\],\.]/,                             )
       add( :character,          /./,                                     )
     end
 
     context( :double_colon ) do
-      add( :colon,              /:/,                                     )
+      add( :close,              /[\n ]*\n( *)/m,               indent: 1 )
       add( :whitespace,         /\s/,                                    )
-      add( :close,              /\n/,                                    )
       add( :open_interp,        /[#][{]/,                                )
       add( :character,          /./,                                     )
     end
 
     context( :triple_colon ) do
-      add( :colon,              /:/,                                     )
-      add( :newline,            /\n/,                                    )
+      add( :newline,            /[\n ]*\n( *)/m,               indent: 1 )
       add( :whitespace,         /\s/,                                    )
       add( :open_interp,        /[#][{]/,                                )
       add( :character,          /./,                                     )

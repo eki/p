@@ -13,7 +13,7 @@ module P
     end
 
     def to_s
-      list.empty? ? "(#{name})" : "(#{name} #{list.join( ' ' )})"
+      list.empty? ? "(#{name})" : "(#{name} #{list.join( ', ' )})"
     end
 
     def inspect
