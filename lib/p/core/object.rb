@@ -155,6 +155,26 @@ module P
       end
     end
 
+
+    # NOTE:  p_send takes an optional p_self argument.  This is used when doing
+    #        prototype chaining so, if the prototype then performs a dependent
+    #        p_send it can be routed to the original object.  This allows
+    #        clones to override the behavior of the prototype.
+    #
+    #        However, this screws up the resolution of some native objects,
+    #        whose receive blocks expect self to be the native object, not
+    #        some "child".  For example, cloning a number like 3 will break
+    #        and p_sends (like numerator, to_string, etc) that depend on
+    #        value being 3.  The clones value will be nil, of course.
+
+    # Suggested solution:
+    #   1.  Only use receive when accessing ruby self.
+    #   2.  Move all receives off P::Object.
+    #   3.  Create base object that (may) receive and can act as a prototype.
+    #   4.  _local_get needs to be expanded below, use p_self with actual
+    #       bound objects, use self with p_get native functions.
+
+
     def p_send( name, args, args_env, p_self=self )
       if receiver = _local_get( name )
         receiver.call( args, args_env, p_self )
@@ -208,6 +228,13 @@ module P
     def to_p
       self
     end
+
+
+    # NOTE:  Adding all of these as receive defeats the purpose of prototype
+    #        lookup.  Every object created with ObjectBuilder or Object.new
+    #        will respond directly to :to_string, for example.  This means
+    #        we'll never find to_string in the prototype chain.
+
 
     receive( :==, 'o'   ) { |env| P.boolean( self == env[:o] ) }
     receive( :to_list   ) { |env| P.list( self ) }
