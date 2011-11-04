@@ -1,6 +1,12 @@
 
 module P
 
+  class WrapperExpr < Atom
+    def evaluate( environment )
+      value.to_p
+    end
+  end
+
   class ArgsExpr < Expr
 
     def bind( parameters, environment, to_environment=environment )
@@ -8,6 +14,14 @@ module P
         bind_by_name( parameters, environment, to_environment )
       else
         bind_by_position( parameters, environment, to_environment )
+      end
+    end
+
+    def unshift( name, value )
+      if by_name?
+        list << Expr.pair( name, Expr.wrapper( value ) )
+      else
+        list.unshift( Expr.wrapper( value ) )
       end
     end
 

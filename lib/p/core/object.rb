@@ -212,7 +212,7 @@ module P
       elsif prototype
         prototype.p_send( name, args, args_env, p_self || self )
       else
-        # method missing args should include the name!
+        args.unshift( 'name', name.to_p )
         p_send( :method_missing, args, args_env, p_self || self )
       end
     end
@@ -283,11 +283,11 @@ module P
       bind( :==,             fn( 'o' )       { |env| self == env[:o] } )
       bind( :respond_to?,    fn( 'name' )    { |env| !! _get( env[:name] ) } )
 
-      bind( :method_missing, fn( 'args: *' ) do |env| 
+      bind( :method_missing, fn( 'name, args: *' ) do |env| 
         if P.true?( env[:args].r_send( :empty? ) )
           P.nil
         else
-          raise "Method Missing Error!"
+          raise "Error: no method #{env[:name]} for #{self} with #{env[:args]}"
         end
       end )
 

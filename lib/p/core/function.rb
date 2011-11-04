@@ -69,16 +69,28 @@ module P
       end
     end
 
+    def unshift( name, value )
+      if by_name?
+        hash[name] = value
+      else
+        list.unshift( value )
+      end
+    end
+
     def bind( parameters, environment, to_environment=environment )
-      if bind_by_name?
+      if by_name?
         bind_by_name( parameters, environment, to_environment )
       else
         bind_by_position( parameters, environment, to_environment )
       end
     end
 
-    def bind_by_name?
+    def by_name?
       !! hash
+    end
+
+    def by_position?
+      ! by_name?
     end
 
     def bind_by_position( parameters, environment, to_env )
