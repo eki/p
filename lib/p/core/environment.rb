@@ -163,10 +163,10 @@ module P
 
     receive( :to_string        ) { |env| to_s }
     receive( :bindings         ) { |env| bindings }
-    receive( :get,      'name' ) { |env| get( env[:name] ) }
+    receive( :[],       'name' ) { |env| get( env[:name] ) }
     receive( :defined?, 'name' ) { |env| defined?( env[:name] ) }
 
-    receive( :set, 'name,value' ) do |env| 
+    receive( :[]=, 'name,value' ) do |env| 
       set( env[:name], env[:value] )
     end
 
