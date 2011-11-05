@@ -3,9 +3,8 @@ module P
 
   class NF < Object
     receive( :puts, 'args: *' ) do |env|
-      env[:args].each do |arg|
-        puts( arg.r_send( :to_string ) )
-      end
+      env[:args].r_send( :each, 
+        NativeFunction.new( 'v' ) { |e2| puts e2[:v].r_send( :to_string ) } )
 
       P.nil
     end

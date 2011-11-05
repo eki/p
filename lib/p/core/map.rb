@@ -45,6 +45,19 @@ module P
     receive( :to_literal ) { |env| to_literal }
     receive( :to_string  ) { |env| to_literal }
 
+    receive( :each, 'fn' ) do |env|
+      fn = env[:fn]
+      arity = fn.r_send( :arity ).r_send( :to_integer ).to_int
+
+      if arity == 1
+        value.each { |k,v| fn.r_call( v ) }
+      elsif arity == 2
+        value.each { |k,v| fn.r_call( k, v ) }
+      else
+        raise "Each expected fn to take 1 or 2 args."
+      end
+    end
+
     def to_s
       value.to_s
     end

@@ -189,6 +189,9 @@ module P
     receive( :call, 'args: *' ) do |env|
       r_call( *env[:args].to_r_args )
     end
+
+    receive( :parameters ) { |env| function.parameters }
+    receive( :arity ) { |env| function.parameters.count { |p| p.required? } }
   end
 
   def self.closure( str )
@@ -241,6 +244,9 @@ module P
     receive( :call, 'args: *' ) do |env|
       r_call( *env[:args].to_r_args )
     end
+
+    receive( :parameters ) { |env| parameters }
+    receive( :arity ) { |env| parameters.count { |p| p.required? } }
   end
 
 end
