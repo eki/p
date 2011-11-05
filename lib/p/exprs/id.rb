@@ -8,6 +8,7 @@ module P
         when value.token?                then value.value
         when value.id?                   then value.value
         when value.number?               then value.to_s
+        when value.glob?                 then :*
       end
     end
 

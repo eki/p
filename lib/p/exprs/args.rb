@@ -28,10 +28,30 @@ module P
     def bind_by_position( parameters, environment, to_env )
       parameters.each_with_index do |p,i|
         if p.glob?
-          last_args = list[parameters.length - 1, list.length] || []
-          e_args = last_args.map { |a| a.evaluate( environment ) }
-          to_env.bind( p.name, e_args.to_p )
+          if arg = list.find { |e| e.pair? && e.left.to_sym == :* }
+            if parameters.length != list.length
+              raise "Wrong number of arguments when explicitly setting glob?"
+            end
+
+            v = arg.right.evaluate( environment )
+
+            if P.true?( v.r_send( :list? ) ) ||
+               P.true?( v.r_send( :map? ) )
+
+              to_env.bind( p.name, v )
+            else
+              raise "Explicit glob requires map? or list?"
+            end
+          else
+            last_args = list[parameters.length - 1, list.length] || []
+            e_args = last_args.map { |a| a.evaluate( environment ) }
+            to_env.bind( p.name, e_args.to_p )
+          end
         elsif arg = list[i]
+          if arg.pair? && arg.left.to_sym == :*
+            raise "Wrong number of arguments #{self} for #{parameters}"
+          end
+
           to_env.bind( p.name, arg.evaluate( environment ) )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( to_env ) )
@@ -48,12 +68,28 @@ module P
     def bind_by_name( parameters, environment, to_env )
       parameters.each do |p,i|
         if p.glob?
-          last_args = list.to_a[parameters.length - 1, list.length] || []
-          e_args = last_args.map do |pair|
-            [pair.left.to_p, pair.right.evaluate( environment )]
-          end
+          if arg = list.find { |pair| :* === pair.left.to_sym }
+            if parameters.length != list.length
+              raise "Wrong number of arguments when explicitly setting glob?"
+            end
 
-          to_env.bind( p.name, Hash[e_args].to_p )
+            v = arg.right.evaluate( environment )
+
+            if P.true?( v.r_send( :list? ) ) ||
+               P.true?( v.r_send( :map? ) )
+
+              to_env.bind( p.name, v )
+            else
+              raise "Explicit glob requires map? or list?"
+            end
+          else
+            last_args = list.to_a[parameters.length - 1, list.length] || []
+            e_args = last_args.map do |pair|
+              [pair.left.to_p, pair.right.evaluate( environment )]
+            end
+
+            to_env.bind( p.name, Hash[e_args].to_p )
+          end
         elsif arg = list.find { |pair| p.name === pair.left.to_sym }
           to_env.bind( p.name, arg.right.evaluate( environment ) )
         elsif p.default?
@@ -65,7 +101,7 @@ module P
     end
 
     def by_name?
-      if list.any? { |e| e.pair? }
+      if list.any? { |e| e.pair? && e.left.to_sym != :* }
         if list.all? { |e| e.pair? }
           return true
         else

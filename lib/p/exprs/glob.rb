@@ -1,7 +1,7 @@
 
 module P
 
-  class GlobExpr < Expr
+  class GlobExpr < Atom
     def evaluate( environment )
       Parameter::GLOB
     end
