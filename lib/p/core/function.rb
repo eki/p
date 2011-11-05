@@ -185,6 +185,10 @@ module P
 
     receive( :environment ) { |env| environment }
     receive( :to_string )   { |env| to_s }
+
+    receive( :call, 'args: *' ) do |env|
+      r_call( *env[:args] )
+    end
   end
 
   def self.closure( str )
@@ -233,6 +237,10 @@ module P
     end
 
     receive( :to_string ) { |env| to_s }
+
+    receive( :call, 'args: *' ) do |env|
+      r_call( *env[:args] )
+    end
   end
 
 end

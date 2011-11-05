@@ -283,11 +283,23 @@ module P
       bind( :==,             fn( 'o' )       { |env| self == env[:o] } )
       bind( :respond_to?,    fn( 'name' )    { |env| !! _get( env[:name] ) } )
 
+      bind( :send, fn( 'name, args: *' ) do |env|
+        r_send( env[:name], *env[:args] )
+      end )
+
       bind( :method_missing, fn( 'name, args: *' ) do |env| 
         if P.true?( env[:args].r_send( :empty? ) )
           P.nil
         else
           raise "Error: no method #{env[:name]} for #{self} with #{env[:args]}"
+        end
+      end )
+
+      bind( :call, fn( 'args: *' ) do |env|
+        if P.true?( env[:args].r_send( :empty? ) )
+          self
+        else
+          raise "Error:  #{self} called with #{env[:args]}"
         end
       end )
 
