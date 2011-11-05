@@ -36,6 +36,7 @@ module P
 
     receive( :map?,      %q( () -> true ) )
 
+    receive( :to_map     ) { |env| self }
     receive( :empty?     ) { |env| empty? }
     receive( :length     ) { |env| length }
     receive( :keys       ) { |env| keys }

@@ -233,6 +233,16 @@ module P
       call( Args.new( *args ), Environment.new )
     end
 
+    def to_r_args
+      if P.true?( r_send( :list? ) )
+        r_send( :to_list ).to_ary
+      elsif P.true?( r_send( :map? ) )
+        [r_send( :to_map ).to_hash]
+      else
+        raise "Cannot convert P::Object into r_args, not a list? or map?"
+      end
+    end
+
     def ==( o )
       value ? value == o.value : super
     end
@@ -283,8 +293,10 @@ module P
       bind( :==,             fn( 'o' )       { |env| self == env[:o] } )
       bind( :respond_to?,    fn( 'name' )    { |env| !! _get( env[:name] ) } )
 
-      bind( :send, fn( 'name, args: *' ) do |env|
-        r_send( env[:name], *env[:args] )
+      bind( :send, fn( 'message, args: *' ) do |env|
+        args = env[:args]
+
+        r_send( env[:message], *env[:args].to_r_args )
       end )
 
       bind( :method_missing, fn( 'name, args: *' ) do |env| 

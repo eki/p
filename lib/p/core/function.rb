@@ -64,8 +64,8 @@ module P
     def initialize( *list )
       @list = list
 
-      if list.length == 1 && list.first.kind_of?( Hash )
-        @list, @hash = nil, @list.first
+      if list.length == 1 && list.first.kind_of?( ::Hash )
+        @list, @hash = nil, list.first
       end
     end
 
@@ -115,7 +115,7 @@ module P
           last_args = hash.to_a[parameters.length - 1, hash.length] || []
 
           to_env.bind( p.name, Hash[last_args].to_p )
-        elsif arg = hash.find { |k,v| p.name === k }
+        elsif arg = hash.find { |k,v| p.name == k.to_sym }
           to_env.bind( p.name, arg.last.to_p )
         elsif p.default?
           to_env.bind( p.name, p.default.evaluate( to_env ) )
@@ -187,7 +187,7 @@ module P
     receive( :to_string )   { |env| to_s }
 
     receive( :call, 'args: *' ) do |env|
-      r_call( *env[:args] )
+      r_call( *env[:args].to_r_args )
     end
   end
 
@@ -239,7 +239,7 @@ module P
     receive( :to_string ) { |env| to_s }
 
     receive( :call, 'args: *' ) do |env|
-      r_call( *env[:args] )
+      r_call( *env[:args].to_r_args )
     end
   end
 
