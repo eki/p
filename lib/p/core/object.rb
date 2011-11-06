@@ -233,6 +233,10 @@ module P
       call( Args.new( *args ), Environment.new )
     end
 
+    # This should be eliminated.  Either Args or ArgsExpr #bind should be
+    # coded to an interface such that any object that obeys the interface
+    # can be a provider of names / positions and values for args.
+
     def to_r_args
       if P.true?( r_send( :list? ) )
         r_send( :to_list ).to_ary
