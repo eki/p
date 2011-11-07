@@ -2,6 +2,7 @@
 module P
 
   class Expr
+    attr_accessor :position
     attr_reader :name, :list
 
     def initialize( *list )

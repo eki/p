@@ -11,8 +11,6 @@ module P
       value.value
     end
 
-    ZERO = NumberExpr.new( Token.new( :number, 0, 0, 0 ) )
-
   end
 
 end

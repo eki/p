@@ -580,7 +580,12 @@ module P
       infix( :fn, '*', :right, block: true ) do |t,left,right|
         right = Expr.block( right ) unless right.block?
 
-        Expr.fn( left.to_params, right )
+        e = Expr.fn( left.to_params, right )
+        if left.position
+          e.source = source[(left.position+1)..(top.position)]
+          e.parameters_source = source[(left.position+1)..(t.position)]
+        end
+        e
       end
 
       infix( :comma, 5 ) { |t,left,right| Expr.seq( left, right ) }
@@ -655,7 +660,9 @@ module P
           raise "Expected ) got #{t}"  unless consume( :close_paren )
         end
 
-        expr || Expr.seq
+        e = expr || Expr.seq
+        e.position = t.position
+        e
       end
 
       prefix( :open_curly ) do |t|
@@ -688,12 +695,14 @@ module P
 
       prefix( :fn ) do |t|
         if top === :newline && parse_line_separator
-          Expr.fn( Expr.params, parse_block( t.indent ) )
+          e = Expr.fn( Expr.params, parse_block( t.indent ) )
         elsif expr = parse_expression
-          Expr.fn( Expr.params, Expr.block( expr ) )
+          e = Expr.fn( Expr.params, Expr.block( expr ) )
         else
-          Expr.fn( Expr.params, Expr.block )
+          e = Expr.fn( Expr.params, Expr.block )
         end
+        e.source = source[(t.position+1)..(top.position)]
+        e
       end
 
       prefix( :not,  18 )

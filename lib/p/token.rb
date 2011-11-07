@@ -2,10 +2,11 @@
 module P
 
   class Token
-    attr_reader :name, :value, :line, :character, :indent
+    attr_reader :name, :value, :position, :line, :character, :indent
 
-    def initialize( name, value, line, character, indent=nil )
-      @name, @value, @line, @character = name.to_sym, value, line, character
+    def initialize( name, value, position, line, character, indent=nil )
+      @name, @value = name.to_sym, value
+      @position, @line, @character = position, line, character
       @indent = indent
     end
 

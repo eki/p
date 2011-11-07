@@ -59,7 +59,8 @@ module P
             end
 
             unless r[:nop]
-              token = Token.new( r[:name], m, line, character, indent )
+              token = Token.new( r[:name], m, position, line, character, 
+                indent )
             end
 
             if r[:indent]
@@ -78,9 +79,9 @@ module P
         @last_token = token
       else
         if last_token.nil?
-          @last_token = Token.new( :start, '', line, character, 0 )
+          @last_token = Token.new( :start, '', position, line, character, 0 )
         else
-          @last_token = Token.new( :end, '', line, character, -1 )
+          @last_token = Token.new( :end, '', position, line, character, -1 )
         end
       end
     end

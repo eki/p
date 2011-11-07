@@ -126,11 +126,12 @@ module P
     end
   end
 
-  class Function
-    attr_reader :parameters, :code
+  class Function < Object
+    attr_reader :parameters, :code, :source, :parameters_source
 
-    def initialize( parameters=[], code=nil )
+    def initialize( parameters=[], code=nil, source=nil, parameters_source=nil )
       @parameters, @code = parameters, code
+      @source, @parameters_source = source, parameters_source
     end
 
     def eval( args, args_env, exec_env )
@@ -145,6 +146,10 @@ module P
     def to_s
       inspect
     end
+
+    receive( :code )   { |env| code.to_s }
+    receive( :source ) { |env| source }
+    receive( :parameters_source ) { |env| parameters_source }
   end
 
   class Closure < Object
@@ -184,6 +189,7 @@ module P
     end
 
     receive( :environment ) { |env| environment }
+    receive( :function )    { |env| function }
     receive( :to_string )   { |env| to_s }
 
     receive( :call, 'args: *' ) do |env|
