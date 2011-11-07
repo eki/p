@@ -2,6 +2,13 @@
 module P
 
   class NF < Object
+    receive( :print, 'args: *' ) do |env|
+      env[:args].r_send( :each, 
+        NativeFunction.new( 'v' ) { |e2| print e2[:v].r_send( :to_string ) } )
+
+      P.nil
+    end
+
     receive( :puts, 'args: *' ) do |env|
       env[:args].r_send( :each, 
         NativeFunction.new( 'v' ) { |e2| puts e2[:v].r_send( :to_string ) } )
@@ -51,6 +58,26 @@ module P
 
         o
       end 
+    end
+
+    receive( :test, 'name, fn' ) do |env|
+      begin
+        env[:fn].r_call()
+        print "."
+      rescue => e
+        puts
+        puts "Test #{env[:name]} failed: #{e}."
+      end
+    end
+
+    receive( :assert, 'value' ) do |env|
+      raise "Assert failed."  unless P.true?( env[:value] )
+    end
+
+    receive( :assert_equal, 'a, b' ) do |env|
+      unless P.true?( env[:a].r_send( '==', env[:b] ) )
+        raise "Expected #{env[:a]} but got #{env[:b]}"
+      end
     end
 
     def []( name )

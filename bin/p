@@ -23,116 +23,151 @@ OptionParser.new do |opts|
 
 end.parse!
 
+module P
+  class Repl
 
-ENVIRONMENT = P::Environment.new
+    attr_reader :environment, :opts
 
-def p_dir
-  d = "#{ENV['HOME']}/.p"
-
-  Dir.mkdir( d, 0755 )   unless Dir.exists? d
-
-  d
-end
-
-def history_file_path
-  p_dir && "#{p_dir}/history.yaml"
-end
-
-def load_history
-  ary = []
-
-  if (path = history_file_path) && File.exists?( path )
-    open( path, 'r' ) do |f|
-      ary = YAML.load( f.read )
+    def initialize( opts={} )
+      @environment = Environment.new
+      @opts = { evaluate: true }.merge( opts )
     end
-  end
 
-  Readline::HISTORY.push( *ary )
-end
-
-def save_history
-  if path = history_file_path
-    ary = Readline::HISTORY.to_a
-
-    open( path, 'w' ) do |f|
-      f.puts( ary[([0,ary.length-100].min)..(ary.length)].to_yaml )
+    def reduce?
+      !! opts[:reduce]
     end
-  end
-end
 
-def continue_read( line )
-  while next_line = Readline.readline( '', false )
-    line << "\n" << next_line  unless next_line.empty?
-
-    begin
-      if next_line.empty?
-        tree = P.parse( line )
-        if OPTS[:reduce]
-          puts tree.reduce
-        elsif OPTS[:evaluate]
-          if o = tree.evaluate( ENVIRONMENT )
-            puts o.inspect
-          end
-        else
-          puts tree
-        end
-        break
-      end
-    rescue P::NewlineExpectedError => e
-      continue_read( line )
-    rescue P::UnexpectedEndError => e
-      continue_read( line )
-    rescue => e
-      puts e
-      puts e.backtrace.join( "\n" )
-      return
+    def evaluate?
+      !! opts[:evaluate]
     end
-  end
-end
 
-def read
-  while line = Readline.readline( '', false )
-    next                   if line.empty?
-    break                  if line.strip =~ /^exit$/
+    def p_dir
+      d = "#{ENV['HOME']}/.p"
 
-    begin
-      if line =~ /\n/
-        continue_read( line )
-      else
-        tree = P.parse( line )
-        if OPTS[:reduce]
-          puts tree.reduce
-        elsif OPTS[:evaluate]
-          if o = tree.evaluate( ENVIRONMENT )
-            puts o.inspect
-          end
-        else
-          puts tree
+      Dir.mkdir( d, 0755 )   unless Dir.exists? d
+
+      d
+    end
+
+    def history_file_path
+      p_dir && "#{p_dir}/history.yaml"
+    end
+
+    def load_history
+      ary = []
+
+      if (path = history_file_path) && File.exists?( path )
+        open( path, 'r' ) do |f|
+          ary = YAML.load( f.read )
         end
       end
-    rescue P::NewlineExpectedError => e
-      continue_read( line )
-    rescue P::UnexpectedEndError => e
-      continue_read( line )
-    rescue => e
-      puts e
-      puts e.backtrace.join( "\n" )
-    ensure
-      remove = []
-      Readline::HISTORY.each_with_index do |h,i| 
-        remove << i  if h == line && i < Readline::HISTORY.length
-      end
-      remove.reverse.each { |i| Readline::HISTORY.delete_at( i ) }
 
-      Readline::HISTORY.push( line )
+      Readline::HISTORY.push( *ary )
+    end
+
+    def save_history
+      if path = history_file_path
+        ary = Readline::HISTORY.to_a
+
+        open( path, 'w' ) do |f|
+          f.puts( ary[([0,ary.length-100].min)..(ary.length)].to_yaml )
+        end
+      end
+    end
+
+    def continue_read( line )
+      while next_line = Readline.readline( '', false )
+        line << "\n" << next_line  unless next_line.empty?
+
+        begin
+          if next_line.empty?
+            tree = P.parse( line )
+            if reduce?
+              puts tree.reduce
+            elsif evaluate?
+              if o = tree.evaluate( environment )
+                puts o.inspect
+              end
+            else
+              puts tree
+            end
+            break
+          end
+        rescue P::NewlineExpectedError => e
+          continue_read( line )
+        rescue P::UnexpectedEndError => e
+          continue_read( line )
+        rescue => e
+          puts e
+          puts e.backtrace.join( "\n" )
+          return
+        end
+      end
+    end
+
+    def read
+      while line = Readline.readline( '', false )
+        next                   if line.empty?
+        break                  if line.strip =~ /^exit$/
+
+        begin
+          if line =~ /\n/
+            continue_read( line )
+          else
+            tree = P.parse( line )
+            if reduce?
+              puts tree.reduce
+            elsif evaluate?
+              if o = tree.evaluate( environment )
+                puts o.inspect
+              end
+            else
+              puts tree
+            end
+          end
+        rescue P::NewlineExpectedError => e
+          continue_read( line )
+        rescue P::UnexpectedEndError => e
+          continue_read( line )
+        rescue => e
+          puts e
+          puts e.backtrace.join( "\n" )
+        ensure
+          remove = []
+          Readline::HISTORY.each_with_index do |h,i| 
+            remove << i  if h == line && i < Readline::HISTORY.length
+          end
+          remove.reverse.each { |i| Readline::HISTORY.delete_at( i ) }
+    
+          Readline::HISTORY.push( line )
+        end
+      end
     end
   end
 end
 
 trap( 'INT' ) { save_history; puts; exit }
 
-load_history
-read
-save_history
+files = ARGV.select { |arg| File.exist?( arg ) && File.file?( arg ) }
+
+if files.empty?
+
+  repl = P::Repl.new( OPTS )
+
+  repl.load_history
+  repl.read
+  repl.save_history
+
+else
+
+  files.each do |fn|
+    open( fn, 'r' ) do |f|
+      tree = P.parse( f.read )
+      tree.evaluate( P::Environment.new )
+    end
+  end
+
+end
+
 puts
 

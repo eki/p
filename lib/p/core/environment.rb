@@ -178,10 +178,14 @@ module P
       return @top  if @top
 
       @top ||= Environment.new( nil ) do
-        bind( :puts,     P.nf( :puts ) )
-        bind( :new,      P.nf( :new ) )
-        bind( :inspect,  P.nf( :inspect ) )
-        bind( :require,  P.nf( :require ) )
+        bind( :print,        P.nf( :print ) )
+        bind( :puts,         P.nf( :puts ) )
+        bind( :new,          P.nf( :new ) )
+        bind( :inspect,      P.nf( :inspect ) )
+        bind( :require,      P.nf( :require ) )
+        bind( :test,         P.nf( :test ) )
+        bind( :assert,       P.nf( :assert ) )
+        bind( :assert_equal, P.nf( :assert_equal ) )
       end
     end
   end

@@ -1,12 +1,5 @@
 
 require 'rake'
-require 'rake/testtask'
-
-Rake::TestTask.new do |t|
-  t.libs << "test"
-  t.test_files = FileList['test/**/*_test.rb']
-  t.verbose = true
-end
 
 task :p do
   exec "bin/p"
@@ -18,5 +11,9 @@ end
 
 task :r do
   exec "bin/p --reduce"
+end
+
+task :test do
+  exec "bin/p #{FileList['p/test/**/*.p']}"
 end
 

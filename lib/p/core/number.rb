@@ -27,6 +27,8 @@ module P
       end
     end
 
+    receive( :-@ ) { |env| self.class.new( -value ) }
+
     receive( :number?, %q( () -> true ) )
 
     receive( :to_float    ) { |env| Float.new( value ) }

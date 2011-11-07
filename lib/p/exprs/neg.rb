@@ -3,7 +3,7 @@ module P
 
   class NegExpr < ReducibleExpr
     def reduce
-      Expr.sub( NumberExpr::ZERO, list.first )
+      SendExpr.new( list.first, Expr.id( '-@' ), Expr.args )
     end
   end
 
