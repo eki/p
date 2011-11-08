@@ -135,6 +135,7 @@ module P
       add( :while,              /while/,                                 )
       add( :until,              /until/,                                 )
       add( :fn,                 /->/,                                    )
+      add( :return,             /return/,                                )
 
       add( :comp,               /[<][=][>]/,                             )
 

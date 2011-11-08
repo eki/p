@@ -705,6 +705,12 @@ module P
         e
       end
 
+      prefix( :return ) do |t|
+        expr = parse_expression
+
+        Expr.return( expr )
+      end
+
       prefix( :not,  18 )
       prefix( :bnot, 18 )
 

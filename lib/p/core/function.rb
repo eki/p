@@ -160,9 +160,14 @@ module P
     end
 
     def call( args, args_env, p_self=nil )
-      exec_env = Environment.new( environment )
-      exec_env.p_self = p_self  if p_self
-      function.eval( args, args_env, exec_env )
+      begin
+        exec_env = Environment.new( environment )
+        exec_env.p_self = p_self  if p_self
+        function.eval( args, args_env, exec_env )
+      rescue ReturnException => e
+        puts "Closure#call caught return error"
+        e.value
+      end
     end
 
     def r_call( *args )
@@ -227,10 +232,15 @@ module P
     end
 
     def call( args, args_env, p_self=nil )
-      exec_env = Environment.new
-      args.bind( parameters, args_env, exec_env )
-      v = p_self ? p_self.instance_exec( exec_env, &block ) : block[exec_env]
-      v.to_p
+      begin
+        exec_env = Environment.new
+        args.bind( parameters, args_env, exec_env )
+        v = p_self ? p_self.instance_exec( exec_env, &block ) : block[exec_env]
+        v.to_p
+      rescue ReturnException => e
+        puts "NativeFunction#call caught return error"
+        e.value
+      end
     end
 
     def r_call( *args )

@@ -21,7 +21,6 @@ module P
         o.call( right, environment )
       end
     end
-
   end
 
 end
