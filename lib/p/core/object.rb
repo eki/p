@@ -223,7 +223,7 @@ module P
 
     def call( args, args_env, p_self=nil )
       if o = _get( :call )
-        p_send( :call, args, args_env, p_self )
+        p_send( :call, args, args_env, p_self || self )
       else
         self
       end
@@ -311,13 +311,43 @@ module P
         end
       end )
 
-      bind( :call, fn( 'args: *' ) do |env|
-        if P.true?( env[:args].r_send( :empty? ) )
-          self
-        else
-          raise "Error:  #{self} called with #{env[:args]}"
-        end
-      end )
+   #  P.object cannot implement :call in this way for the following reason:
+   #  
+   #  Any object can be called as a function (closure), and that's fine:
+   #
+   #    34()     => 34
+   #
+   #  This default behavior is to return self unless args are present in
+   #  which case the call was probably in error.  (Unless the object overrides
+   #  call of course).
+   #
+   #    34( 5 )  => Error.
+   #
+   #  When making a call on something bound to an object, we set self to the
+   #  object.  So, with a closure:
+   #
+   #    foo = new( -> x = -> puts( self ) )    # => self is foo, self.x is the
+   #                                           # closure being called when
+   #                                           # foo.x appears in code.
+   #  This breaks the default because:
+   #
+   #    foo = new( -> x = 3 )   # Now foo.x tries to call 3(), but self has
+   #                            # been set to foo.  The default impl tries
+   #                            # to return foo instead of 3.  We'd need to
+   #                            # bind 3 to something in the calling
+   #                            # environment to allow the default to work.
+   #  
+   #  Alternatively, we could *not* define call for objects without call
+   #  behavior and handle this case without making a p_send.
+
+   #
+   #  bind( :call, fn( 'args: *' ) do |env|
+   #    if P.true?( env[:args].r_send( :empty? ) )
+   #      self
+   #    else
+   #      raise "Error:  #{self} called with #{env[:args]}"
+   #    end
+   #  end )
 
       bind( :clone, fn( 'f: ?' ) do |env|
         f = env[:f]

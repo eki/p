@@ -146,13 +146,17 @@ module P
   end
 end
 
-trap( 'INT' ) { save_history; puts; exit }
-
 files = ARGV.select { |arg| File.exist?( arg ) && File.file?( arg ) }
 
 if files.empty?
 
   repl = P::Repl.new( OPTS )
+
+  trap( 'INT' ) do 
+    repl.save_history
+    puts
+    exit
+  end
 
   repl.load_history
   repl.read
