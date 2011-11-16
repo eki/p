@@ -700,7 +700,7 @@ module P
       prefix( :fn, 190 ) do |t|
         if top === :newline && parse_line_separator
           e = Expr.fn( Expr.params, parse_block( t.indent ) )
-        elsif expr = parse_expression( nil, Rule.new( :cif, 41 ) )
+        elsif expr = parse_expression( nil, Rule.new( :cif, 39 ) )
           e = Expr.fn( Expr.params, Expr.block( expr ) )
         else
           e = Expr.fn( Expr.params, Expr.block )
