@@ -1,15 +1,13 @@
 
-require 'set'
-
 module P
 
-  class Set < Object
+  class Hash < Object
     include Enumerable
 
     attr_reader :value
 
-    def initialize( ary )
-      @value = ::Set.new( ary )
+    def initialize( hash )
+      @value = hash.to_hash
     end
 
     def empty?
@@ -24,15 +22,31 @@ module P
       value[key]
     end
 
+    def keys
+      value.keys
+    end
+
+    def values
+      value.values
+    end
+
     def each( &block )
       value.each( &block )
     end
 
-    receive( :set?,      %q( () -> true ) )
+    receive( :map?,      %q( () -> true ) )
+    receive( :hash?,     %q( () -> true ) )
 
-    receive( :to_set     ) { |env| self }
+    receive( :to_map     ) { |env| self }
+    receive( :to_trie    ) { |env| P.trie( value ) }
+    receive( :to_hash    ) { |env| self }
+
+
     receive( :empty?     ) { |env| empty? }
     receive( :length     ) { |env| length }
+    receive( :keys       ) { |env| keys }
+    receive( :values     ) { |env| values }
+    receive( :[], 'key'  ) { |env| self[env[:key]] }
     receive( :to_literal ) { |env| to_literal }
     receive( :to_string  ) { |env| to_literal }
 
@@ -42,8 +56,10 @@ module P
 
       if arity == 1
         value.each { |k,v| fn.r_call( v ) }
+      elsif arity == 2
+        value.each { |k,v| fn.r_call( k, v ) }
       else
-        raise "Each expected fn to take 1 arg."
+        raise "Each expected fn to take 1 or 2 args."
       end
     end
 
@@ -52,16 +68,20 @@ module P
     end
 
     def to_literal
-      "{#{map { |v| v.to_s }.join( ', ' )}}"
+      "{#{map { |k,v| "#{k} => #{v}" }.join( ', ' )}}"
     end
 
     def inspect
       to_literal
     end
+
+    def to_hash
+      value
+    end
   end
 
-  def self.set( ary=[] )
-    Set.new( ary )
+  def self.hash( h={} )
+    Hash.new( h )
   end
 
 end

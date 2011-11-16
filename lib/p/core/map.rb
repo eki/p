@@ -1,82 +1,31 @@
 
 module P
 
-  class Map < Object
-    include Enumerable
+  def self.empty_map
+    @empty_map ||= Object.build do
+      bind( 'to_string',  %q( () -> '{}' ) )
+      bind( 'to_literal', %q( () -> '{}' ) )
+      bind( :empty?,      %q( () -> true ) )
+      bind( :map?,        %q( () -> true ) )
+      bind( :trie?,       %q( () -> true ) )
+      bind( :hash?,       %q( () -> true ) )
+      bind( :set?,        %q( () -> true ) )
 
-    attr_reader :value
-
-    def initialize( hash )
-      @value = hash.to_hash
-    end
-
-    def empty?
-      value.empty?
-    end
-
-    def length
-      value.length
-    end
-
-    def []( key )
-      value[key]
-    end
-
-    def keys
-      value.keys
-    end
-
-    def values
-      value.values
-    end
-
-    def each( &block )
-      value.each( &block )
-    end
-
-    receive( :map?,      %q( () -> true ) )
-
-    receive( :to_map     ) { |env| self }
-    receive( :empty?     ) { |env| empty? }
-    receive( :length     ) { |env| length }
-    receive( :keys       ) { |env| keys }
-    receive( :values     ) { |env| values }
-    receive( :[], 'key'  ) { |env| self[env[:key]] }
-    receive( :to_literal ) { |env| to_literal }
-    receive( :to_string  ) { |env| to_literal }
-
-    receive( :each, 'fn' ) do |env|
-      fn = env[:fn]
-      arity = fn.r_send( :arity ).r_send( :to_integer ).to_int
-
-      if arity == 1
-        value.each { |k,v| fn.r_call( v ) }
-      elsif arity == 2
-        value.each { |k,v| fn.r_call( k, v ) }
-      else
-        raise "Each expected fn to take 1 or 2 args."
-      end
-    end
-
-    def to_s
-      value.to_s
-    end
-
-    def to_literal
-      to_s  # This should really be formatted to match a parsable literal
-    end
-
-    def inspect
-      value.inspect
-    end
-
-    def to_hash
-      value
+      bind( :to_map,      fn { |env| self   } )
+      bind( :to_trie,     fn { |env| P.trie } )
+      bind( :to_hash,     fn { |env| P.hash } )
+      bind( :to_set,      fn { |env| P.set  } )
     end
   end
 
   def self.map( h )
-    Map.new( h )
+    if h.empty?
+      empty_map
+    elsif h.all? { |k,v| k.kind_of?( String ) }
+      trie( h )
+    else
+      hash( h )
+    end
   end
 
 end

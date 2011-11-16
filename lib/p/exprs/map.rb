@@ -10,20 +10,22 @@ module P
     def evaluate( environment )
       if empty?
         evaluate_as_empty( environment )
-      elsif map?
-        evaluate_as_map( environment )
+      elsif trie?
+        evaluate_as_trie( environment )
+      elsif hash?
+        evaluate_as_hash( environment )
       elsif set?
         evaluate_as_set( environment )
       else
-        raise "Malformed map / hash / set #{value}"
+        raise "Malformed trie / hash / set #{value}"
       end
     end
 
     def evaluate_as_empty( environment )
-      evaluate_as_map( environment )  # temporary
+      P.empty_map
     end
 
-    def evaluate_as_map( environment )
+    def evaluate_as_trie( environment )
       h = {}
       value.each do |expr| 
         if expr.pair?
@@ -33,7 +35,23 @@ module P
         end
       end
 
-      P.map( h )
+      P.trie( h )
+    end
+
+    def evaluate_as_hash( environment )
+      h = {}
+      value.each do |expr| 
+        if expr.pair?
+          h[P.string( expr.left )] = expr.right.evaluate( environment )
+        elsif expr.hash_pair?
+          h[expr.left.evaluate( environment )] = 
+            expr.right.evaluate( environment )
+        else
+          raise "Expected pair or hash_pair (#{expr}) in map: #{value}"
+        end
+      end
+
+      P.hash( h )
     end
 
     def evaluate_as_set( environment )
@@ -44,12 +62,16 @@ module P
       value.empty?
     end
 
-    def map?
+    def hash?
+      value.all? { |expr| expr.pair? || expr.hash_pair? }
+    end
+
+    def trie?
       value.all? { |expr| expr.pair? }
     end
 
     def set?
-      ! value.any? { |expr| expr.pair? }
+      value.all? { |expr| ! (expr.pair? || expr.hash_pair?) }
     end
 
     def to_s
@@ -60,6 +82,8 @@ module P
       s = value.map do |expr|
         if expr.pair?
           "#{expr.left}: #{expr.right}"
+        elsif expr.hash_pair?
+          "#{expr.left} => #{expr.right}"
         else
           raise "Expected pair (#{expr}) in map: #{value}"
         end

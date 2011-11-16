@@ -618,6 +618,10 @@ module P
         end
       end
 
+      infix( :hash, 60 ) do |t,left,right|
+        Expr.hash_pair( left, right )
+      end
+
       infix( :question, 70, right_with_precedence: 0 ) do |t,left,right|
         if consume( :colon )
           if e = parse_expression( nil, Rule.new( :eif, 0 ) )

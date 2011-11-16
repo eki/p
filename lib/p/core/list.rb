@@ -64,15 +64,15 @@ module P
     end
 
     def to_s
-      value.to_s
+      to_literal
     end
 
     def to_literal
-      to_s  # This should really be formatted to match a parsable literal
+      "[#{map { |v| v.to_s }.join( ', ' )}]"
     end
 
     def inspect
-      value.inspect
+      to_literal
     end
 
     def to_ary

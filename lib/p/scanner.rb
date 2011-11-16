@@ -137,6 +137,8 @@ module P
       add( :fn,                 /->/,                                    )
       add( :return,             /return/,                                )
 
+      add( :hash,               /=>/,                                    )
+
       add( :comp,               /[<][=][>]/,                             )
 
       add( :or_assign,          /[|][|][=]/,                             )
