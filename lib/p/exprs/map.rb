@@ -3,7 +3,7 @@ module P
 
   class MapExpr < Atom
 
-    def initialize( value )
+    def initialize( value={} )
       @value = value
     end
 

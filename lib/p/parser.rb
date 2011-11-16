@@ -686,11 +686,17 @@ module P
       end
 
       prefix( :open_curly ) do |t|
-        expr = parse_expression
+        if top === :close_curly
+          consume( top )
 
-        raise "Expected } got #{t}"  unless consume( :close_curly )
+          Expr.map
+        else
+          expr = parse_expression
 
-        Expr.map( Expr.seq( expr ).flatten.list )
+          raise "Expected } got #{t}"  unless consume( :close_curly )
+
+          Expr.map( Expr.seq( expr ).flatten.list )
+        end
       end
 
       infix( :open_square, 190, :right, right_with_precedence: 0, # was 200
@@ -706,11 +712,17 @@ module P
       end
 
       prefix( :open_square ) do |t|
-        expr = parse_expression
+        if top === :close_square
+          consume( top )
 
-        raise "Expected ] got #{t}"  unless consume( :close_square )
+          Expr.list
+        else
+          expr = parse_expression
 
-        Expr.list( (expr || Expr.seq).flatten.list )
+          raise "Expected ] got #{t}"  unless consume( :close_square )
+
+          Expr.list( (expr || Expr.seq).flatten.list )
+        end
       end
 
       prefix( :fn, 190 ) do |t|
