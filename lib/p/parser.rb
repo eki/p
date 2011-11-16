@@ -169,12 +169,20 @@ module P
 
       indent = top.indent
 
-      consume( top )  while top == :newline
+      consume( top )  while top === :newline
 
       if expr = parse_expression
         block = [expr]
       else
         raise "Failed to parse_block at #{top.name}:#{top}"
+      end
+
+      # This check is necessary to avoid consuming the newline at the end
+      # of a single expression block.  That newline will likely be needed
+      # by the enclosing block (if there is one).
+
+      if top.indent < indent
+        return Expr.block( *block )
       end
 
       while parse_line_separator
@@ -230,12 +238,20 @@ module P
     end
 
     def parse_else( indent )
-      if top === :else && top.indent == indent
-        consume( :else )
-        if parse_line_separator
-          parse_block( indent )  or raise "Else without properly indented block"
-        elsif e = parse_expression
-          Expr.block( e )
+      if top.indent == indent
+        consume( :newline )  while top === :newline
+
+        if top === :else
+          consume( :else )
+          if parse_line_separator
+            unless block = parse_block( indent )
+              raise "Else without properly indented block"
+            end
+
+            block
+          elsif e = parse_expression
+            Expr.block( e )
+          end
         end
       end
     end

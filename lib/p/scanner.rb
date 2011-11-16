@@ -126,7 +126,7 @@ module P
 
       add( :semicolon,          /;/,                                     )
 
-      add( :comment,            /[\n ]*(#\W[^\n]*\n)*#\W[^\n]*/, nop: true )
+      add( :comment,            /[\n ]*(#[^\n]*\n)*#[^\n]*/,   nop: true )
       add( :newline,            /[\n ]*\n( *)/m,               indent: 1 )
 
       add( :if,                 /if/,                                    )
