@@ -213,6 +213,9 @@ module P
 
       add( :id,                 /[*][*]/             )  # :exp
 
+      add( :id,                 /\[\]=/              )  # array indexing (set)
+      add( :id,                 /\[\]/               )  # array indexing (get)
+
       add( :id,                 /[>][=]/             )  # :gte
       add( :id,                 /[<][=]/             )  # :lte
       add( :id,                 /[=][=]/             )  # :eq

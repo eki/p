@@ -20,6 +20,8 @@ module P
         else
           P.nil
         end
+      elsif first.atom?
+        first.evaluate( environment )
       end
     end
   end

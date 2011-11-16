@@ -1,9 +1,8 @@
 
+abs := n -> n < 0 ? -n : n
+
 gcd := (u, v) ->
-  if v != 0
-    gcd( v, u % v )
-  else
-    u < 0 ? -u : u
+  v != 0 ? gcd( v, u % v ) : abs( u )
 
 test( 'gcd(12,30)', -> assert_equal( 6, gcd( 12, 30 ) ) )
 test( 'gcd(30,12)', -> assert_equal( 6, gcd( 30, 12 ) ) )

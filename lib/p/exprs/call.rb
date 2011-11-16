@@ -3,8 +3,18 @@ module P
 
   class CallExpr < Expr
 
+    def reduce
+      if left.send?
+        SendExpr.new( left.left.reduce, left.right.reduce, right )
+      else
+        self
+      end
+    end
+
     def evaluate( environment )
-      if left.id?
+      if left.send?
+        reduce.evaluate( environment )
+      elsif left.id?
         name = left.to_sym
 
         if o = environment.local_get( name )
@@ -17,7 +27,7 @@ module P
           P.nil
         end
       else
-        o = left.evaluate( environment )
+        o = Expr.nocall( left ).evaluate( environment )
         o.call( right, environment )
       end
     end

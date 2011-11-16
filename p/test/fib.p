@@ -2,13 +2,11 @@
 new_fib_generator := ->
   n, m = nil, nil
   ->
-    if ! n
-      n = 0
-    else if ! m
-      m = 1
-    else
-      n, m = m, n + m
-      m
+    return n = 0  unless n
+    return m = 1  unless m
+
+    n, m = m, n + m
+    m
 
 fib := new_fib_generator
 gib := new_fib_generator

@@ -29,18 +29,14 @@ module P
       !! right_optional
     end
 
+    def right_with_precedence
+      Rule.new( :bogus, opts[:right_with_precedence] || precedence )
+    end
+
     def <=>( r )
       p, rp = precedence, r.precedence
 
-      if rp == '*' && p != '*'
-        rp = p - 2
-      elsif rp != '*' && p == '*'
-        p  = rp + 2
-      elsif rp == '*' && p == '*'
-        rp, p = 0, 0
-      end
-
-      rp = rp - (r.associativity == :right ? 1 : 0)
+      rp -= 1  if r.associativity == :right
 
       p <=> rp
     end
@@ -87,7 +83,7 @@ module P
     end
 
     def assign( opts={} )
-      prec  = opts[:precedence]    || 3
+      prec  = opts[:precedence]    || 40
       assoc = opts[:associativity] || :right
       name  = opts[:name]          || :assign
 
@@ -256,7 +252,7 @@ module P
           right = parse_block( t.indent )
         elsif ! (r.right_optional? && top === r.right_optional)
           consume( :newline )
-          right = parse_expression( nil, r )
+          right = parse_expression( nil, r.right_with_precedence )
         end
 
         unless right || r.right_optional?
@@ -556,11 +552,19 @@ module P
       value( :question )  { |t| Expr.optional( t ) }
       value( :band )      { |t| Expr.amp( t ) }
 
-      infix( :if,     2 ) { |t,left,right| Expr.cif( left, right ) }
-      infix( :unless, 2 ) { |t,left,right| Expr.cun( left, right ) }
+      infix( :if,     20 ) { |t,left,right| Expr.cif( left, right ) }
+      infix( :unless, 20 ) { |t,left,right| Expr.cun( left, right ) }
 
-      infix( :while,  2 ) { |t,left,right| Expr.cwhile( left, right ) }
-      infix( :until,  2 ) { |t,left,right| Expr.cuntil( left, right ) }
+      infix( :while,  20 ) { |t,left,right| Expr.cwhile( left, right ) }
+      infix( :until,  20 ) { |t,left,right| Expr.cuntil( left, right ) }
+
+      prefix( :return, 30 ) do |t|
+        if e = parse_expression( nil, Rule.new( :cif, 30 ) )
+          Expr.return( e )
+        else
+          raise "return requires expression."
+        end
+      end
 
       assign( name: :assign )
       assign( name: :single_assign )
@@ -577,7 +581,7 @@ module P
       assign( op: :band   )
       assign( op: :bnot   )
 
-      infix( :fn, '*', :right, block: true ) do |t,left,right|
+      infix( :fn, 41, :right, block: true ) do |t,left,right|
         right = Expr.block( right ) unless right.block?
 
         e = Expr.fn( left.to_params, right )
@@ -588,9 +592,9 @@ module P
         e
       end
 
-      infix( :comma, 5 ) { |t,left,right| Expr.seq( left, right ) }
+      infix( :comma, 50 ) { |t,left,right| Expr.seq( left, right ) }
 
-      infix( :colon, 6 ) do |t,left,right|
+      infix( :colon, 60 ) do |t,left,right|
         if left.atom?
           Expr.pair( Expr.id( left ), right )
         else
@@ -598,9 +602,9 @@ module P
         end
       end
 
-      infix( :question, 7 ) do |t,left,right|
+      infix( :question, 70, right_with_precedence: 0 ) do |t,left,right|
         if consume( :colon )
-          if e = parse_expression( nil, Rule.new( :eif, 4 ) )
+          if e = parse_expression( nil, Rule.new( :eif, 0 ) )
             Expr.if( left, right, e )
           else
             raise "Couldn't find else conditional to complete ?:"
@@ -610,35 +614,35 @@ module P
         end
       end
 
-      infix( :bor,     8 )
-      infix( :xor,     9 )
-      infix( :band,   10 )
+      infix( :bor,     80 )
+      infix( :xor,     90 )
+      infix( :band,   100 )
 
-      infix( :and,    11 )
-      infix( :or,     11 )
+      infix( :and,    110 )
+      infix( :or,     110 )
 
-      infix( :eq,     12 )
-      infix( :neq,    12 )
-      infix( :gt,     12 )
-      infix( :lt,     12 )
-      infix( :gte,    12 )
-      infix( :lte,    12 )
+      infix( :eq,     120 )
+      infix( :neq,    120 )
+      infix( :gt,     120 )
+      infix( :lt,     120 )
+      infix( :gte,    120 )
+      infix( :lte,    120 )
 
-      infix( :comp,   13 )
+      infix( :comp,   130 )
 
-      infix( :lshift, 14 )
-      infix( :rshift, 14 )
+      infix( :lshift, 140 )
+      infix( :rshift, 140 )
       
-      infix( :add,    15 )
-      infix( :sub,    15 )
+      infix( :add,    150 )
+      infix( :sub,    150 )
 
-      infix( :mult,   16 )
-      infix( :div,    16 )
-      infix( :modulo, 16 )
+      infix( :mult,   160 )
+      infix( :div,    160 )
+      infix( :modulo, 160 )
 
-      infix( :exp,    17 ) 
+      infix( :exp,    170 ) 
 
-      infix( :open_paren, '*', :right, 
+      infix( :open_paren, 190, :right, right_with_precedence: 0, # was 49
         right_optional: :close_paren ) do |t,left,right|
 
         raise "Expected ) got #{top.debug}"  unless consume( :close_paren )
@@ -673,7 +677,7 @@ module P
         Expr.map( Expr.seq( expr ).flatten.list )
       end
 
-      infix( :open_square, '*', :right, 
+      infix( :open_square, 190, :right, right_with_precedence: 0, # was 200
         right_optional: :close_square ) do |t,left,right|
 
         raise "Expected ] got #{t}"  unless consume( :close_square )
@@ -693,10 +697,10 @@ module P
         Expr.list( (expr || Expr.seq).flatten.list )
       end
 
-      prefix( :fn ) do |t|
+      prefix( :fn, 190 ) do |t|
         if top === :newline && parse_line_separator
           e = Expr.fn( Expr.params, parse_block( t.indent ) )
-        elsif expr = parse_expression
+        elsif expr = parse_expression( nil, Rule.new( :cif, 41 ) )
           e = Expr.fn( Expr.params, Expr.block( expr ) )
         else
           e = Expr.fn( Expr.params, Expr.block )
@@ -705,20 +709,14 @@ module P
         e
       end
 
-      prefix( :return ) do |t|
-        expr = parse_expression
+      prefix( :not,  180 )
+      prefix( :bnot, 180 )
 
-        Expr.return( expr )
-      end
-
-      prefix( :not,  18 )
-      prefix( :bnot, 18 )
-
-      postfix( :not, 19, :right ) do |t,left|
+      postfix( :not, 210, :right ) do |t,left|
         SendExpr.new( left, Expr.id( '!' ), Expr.args )
       end
 
-      infix( :dot, 19 ) do |t,left,right|
+      infix( :dot, 210 ) do |t,left,right|
         unless right.id? || right.call?
           raise "Expected #{left}.id got #{right}"
         end
@@ -730,8 +728,8 @@ module P
         end
       end
 
-      prefix( :sub,   20, op: :neg )
-      prefix( :band,  20, op: :nocall )
+      prefix( :sub,   200, op: :neg )
+      prefix( :band,  200, op: :nocall )
 
       prefix( :if ) do |t|
         parse_statement( :if, t ) do |t, condition, block|

@@ -165,7 +165,6 @@ module P
         exec_env.p_self = p_self  if p_self
         function.eval( args, args_env, exec_env )
       rescue ReturnException => e
-        puts "Closure#call caught return error"
         e.value
       end
     end
@@ -238,7 +237,6 @@ module P
         v = p_self ? p_self.instance_exec( exec_env, &block ) : block[exec_env]
         v.to_p
       rescue ReturnException => e
-        puts "NativeFunction#call caught return error"
         e.value
       end
     end

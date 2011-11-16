@@ -16,7 +16,6 @@ Point := new( ->
     x, y := x, y )
   to_string := -> "Point" )
 
-puts "origin.x: #{origin.x}"
 
 test( 'origin', ->
   assert_equal( true, origin.point? )
@@ -27,15 +26,15 @@ test( 'origin', ->
 )
 
 test( 'Point', ->
-  p = Point.new( 3, 4 )
+  p = Point.new( 4, 4 )
   q = Point.new( 8, 1 )
 
-  assert_equal( 11, (p + q).x )
+  assert_equal( 12, (p + q).x )
   assert_equal(  5, (p + q).y )
-  assert_equal( Point.new( 11, 5 ), p + q )
+  assert_equal( Point.new( 12, 5 ), p + q )
 
-  assert_equal( 11, (q + p).x )
+  assert_equal( 12, (q + p).x )
   assert_equal(  5, (q + p).y )
-  assert_equal( Point.new( 11, 5 ), q + p )
+  assert_equal( Point.new( 12, 5 ), q + p )
 )
 
