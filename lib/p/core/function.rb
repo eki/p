@@ -55,7 +55,12 @@ module P
       inspect
     end
 
-    receive( :to_string ) { |env| to_s }
+    receive( :to_string   ) { |env| to_s }
+    receive( :mutable?    ) { |env| mutable? }
+    receive( :immutable?  ) { |env| immutable? }
+    receive( :optional?   ) { |env| optional? }
+    receive( :required?   ) { |env| required? }
+    receive( :glob?       ) { |env| glob? }
   end
 
   class Args
@@ -98,11 +103,11 @@ module P
         if p.glob?
           last_args = list[parameters.length - 1, list.length] || []
 
-          to_env.bind( p.name, last_args.to_p )
+          to_env.bind( p.name, last_args.to_p, p.mutable? )
         elsif arg = list[i]
-          to_env.bind( p.name, arg.to_p )
+          to_env.bind( p.name, arg.to_p, p.mutable? )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( to_env ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ), p.mutable? )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end
@@ -114,11 +119,11 @@ module P
         if p.glob?
           last_args = hash.to_a[parameters.length - 1, hash.length] || []
 
-          to_env.bind( p.name, Hash[last_args].to_p )
+          to_env.bind( p.name, ::Hash[last_args].to_p, p.mutable? )
         elsif arg = hash.find { |k,v| p.name == k.to_sym }
-          to_env.bind( p.name, arg.last.to_p )
+          to_env.bind( p.name, arg.last.to_p, p.mutable? )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( to_env ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ), p.mutable? )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end

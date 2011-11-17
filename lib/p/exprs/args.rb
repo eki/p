@@ -38,23 +38,23 @@ module P
             if P.true?( v.r_send( :list? ) ) ||
                P.true?( v.r_send( :map? ) )
 
-              to_env.bind( p.name, v )
+              to_env.bind( p.name, v, p.mutable? )
             else
               raise "Explicit glob requires map? or list?"
             end
           else
             last_args = list[parameters.length - 1, list.length] || []
             e_args = last_args.map { |a| a.evaluate( environment ) }
-            to_env.bind( p.name, e_args.to_p )
+            to_env.bind( p.name, e_args.to_p, p.mutable? )
           end
         elsif arg = list[i]
           if arg.pair? && arg.left.to_sym == :*
             raise "Wrong number of arguments #{self} for #{parameters}"
           end
 
-          to_env.bind( p.name, arg.evaluate( environment ) )
+          to_env.bind( p.name, arg.evaluate( environment ), p.mutable? )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( to_env ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ), p.mutable? )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end
@@ -78,7 +78,7 @@ module P
             if P.true?( v.r_send( :list? ) ) ||
                P.true?( v.r_send( :map? ) )
 
-              to_env.bind( p.name, v )
+              to_env.bind( p.name, v, p.mutable? )
             else
               raise "Explicit glob requires map? or list?"
             end
@@ -88,12 +88,12 @@ module P
               [pair.left.to_p, pair.right.evaluate( environment )]
             end
 
-            to_env.bind( p.name, Hash[e_args].to_p )
+            to_env.bind( p.name, ::Hash[e_args].to_p, p.mutable? )
           end
         elsif arg = list.find { |pair| p.name === pair.left.to_sym }
-          to_env.bind( p.name, arg.right.evaluate( environment ) )
+          to_env.bind( p.name, arg.right.evaluate( environment ), p.mutable? )
         elsif p.default?
-          to_env.bind( p.name, p.default.evaluate( to_env ) )
+          to_env.bind( p.name, p.default.evaluate( to_env ), p.mutable? )
         else
           raise "Wrong number of arguments #{self} for #{parameters}"
         end

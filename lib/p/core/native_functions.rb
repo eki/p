@@ -47,11 +47,7 @@ module P
         if P.true?( ae = env[:environment] )
           exec_env.bindings.each do |b|
             unless ae.defined?( b.name )
-              if b.mutable?
-                ae.set( b.name, b.value )
-              else
-                ae.bind( b.name, b.value )
-              end
+              ae.bind( b.name, b.value, b.mutable? )
             end
           end
         end

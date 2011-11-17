@@ -20,7 +20,9 @@ module P
       @p_self || (parent && parent.p_self)
     end
 
-    def bind( name, value )
+    def bind( name, value, mutable=false )
+      return set( name, value )  if mutable
+
       name = name.to_sym
 
       if bindings.any? { |b| b.name === name }
@@ -93,11 +95,7 @@ module P
     def unchain
       Environment.new( nil ) do
         bindings.each do |b|
-          if b.mutable?
-            set( b.name, b.value )
-          else
-            bind( b.name, b.value )
-          end
+          bind( b.name, b.value, b.mutable? )
         end
       end
     end
@@ -105,11 +103,7 @@ module P
     def flatten( env=Environment.new( nil ) )
       bindings.each do |b|
         unless env.binding_for( b.name )
-          if b.mutable?
-            env.set( b.name, b.value )
-          else
-            env.bind( b.name, b.value )
-          end
+          env.bind( b.name, b.value, b.mutable? )
         end
       end
 
@@ -123,22 +117,14 @@ module P
     def include( env )
       Environment.new( self ) do
         env.bindings.each do |b|
-          if b.mutable?
-            set( b.name, b.value )
-          else
-            bind( b.name, b.value )
-          end
+          bind( b.name, b.value, b.mutable? )
         end
       end
     end
 
     def copy( env )
       env.bindings.each do |b|
-        if b.mutable?
-          set( b.name, b.value )
-        else
-          bind( b.name, b.value )
-        end
+        bind( b.name, b.value, b.mutable? )
       end
     end
 
@@ -170,8 +156,8 @@ module P
       set( env[:name], env[:value] )
     end
 
-    receive( :bind, 'name,value' ) do |env| 
-      bind( env[:name], env[:value] )
+    receive( :bind, 'name, value, mutable: false' ) do |env| 
+      bind( env[:name], env[:value], P.true?( env[:mutable] ) )
     end
 
     def self.top
