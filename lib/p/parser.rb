@@ -177,29 +177,21 @@ module P
         raise "Failed to parse_block at #{top.name}:#{top}"
       end
 
-      # This check is necessary to avoid consuming the newline at the end
-      # of a single expression block.  That newline will likely be needed
-      # by the enclosing block (if there is one).
-
-      if top.indent < indent
-        return Expr.block( *block )
-      end
-
-      while parse_line_separator
-        consume( top )  while top === :newline
-
-        if top.indent == indent
-          while top.indent == indent
-            consume( top )  while top === :newline
-            break              if top === :close_paren || top === :end
-
+      while top.indent >= indent
+        if top.indent > indent
+          block << parse_block
+        elsif top.indent < indent
+          break
+        elsif top.indent == indent
+          if top === :newline || top === :semicolon
+            consume( top )
+          elsif top === :close_paren || top === :end
+            break
+          else
             block << parse_expression
           end
-        elsif top.indent < indent
-          return Expr.block( *block )
-        elsif top.indent > indent
-          block << parse_block
         end
+
       end
 
       Expr.block( *block )
@@ -221,7 +213,13 @@ module P
         value = infix
       end
 
-      value
+      if rule || top === :newline     || top === :semicolon   || 
+                 top === :end         || top === :close_paren || 
+                 top === :close_curly || top === :close_square
+        value
+      else
+        Expr.call( value, parse_expression.to_args )
+      end
     end
 
     def parse_line_separator
@@ -665,6 +663,8 @@ module P
       infix( :open_paren, 190, :right, right_with_precedence: 0, # was 49
         right_optional: :close_paren ) do |t,left,right|
 
+        consume( top )  while top === :newline
+
         raise "Expected ) got #{top.debug}"  unless consume( :close_paren )
 
         if right
@@ -697,6 +697,8 @@ module P
         else
           expr = parse_expression
 
+          consume( top )  while top === :newline
+
           raise "Expected } got #{t}"  unless consume( :close_curly )
 
           Expr.map( Expr.seq( expr ).flatten.list )
@@ -705,6 +707,8 @@ module P
 
       infix( :open_square, 190, :right, right_with_precedence: 0, # was 200
         right_optional: :close_square ) do |t,left,right|
+
+        consume( top )  while top === :newline
 
         raise "Expected ] got #{t}"  unless consume( :close_square )
 
