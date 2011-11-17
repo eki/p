@@ -122,7 +122,7 @@ module P
       add( :nil,                /nil/                                    )
       add( :true,               /true/,                                  )
       add( :false,              /false/,                                 )
-      add( :number,             /\d+(\.\d+)?/,                           )
+      add( :number,             /\d+(\.\d+f?)?/,                         )
 
       add( :semicolon,          /;/,                                     )
 

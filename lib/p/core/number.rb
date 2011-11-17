@@ -6,7 +6,12 @@ module P
       when ::Integer  then Integer.new( value )
       when ::Rational then P.number( Ratio.new( value ) )
       when ::Float    then Float.new( value )
-      when ::String   then P.number( Ratio.new( value ) )
+      when ::String   
+        if value[value.length-1] == "f"
+          Float.new( value )
+        else
+          P.number( Ratio.new( value ) )
+        end
       when Ratio
         if value.denominator == 1
           P.number( value.numerator )
@@ -36,15 +41,19 @@ module P
     receive( :to_ratio    ) { |env| Ratio.new( value ) }
     receive( :to_rational ) { |env| P.number( Ratio.new( value ) ) }
 
-    receive( :to_literal  ) { |env| to_s }
+    receive( :to_literal  ) { |env| to_literal }
     receive( :to_string   ) { |env| to_s }
 
+    def to_literal
+      value.inspect
+    end
+
     def to_s
-      value.to_s
+      to_literal
     end
 
     def inspect
-      value.inspect
+      to_literal
     end
   end
 
@@ -103,6 +112,10 @@ module P
     def to_r
       value
     end
+
+    def to_literal
+      value.to_f.to_s
+    end
   end
 
   class Float < Number
@@ -114,6 +127,10 @@ module P
 
     def to_f
       value
+    end
+
+    def to_literal
+      "#{value}f"
     end
   end
 
