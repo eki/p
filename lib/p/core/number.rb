@@ -78,7 +78,7 @@ module P
 
     BITWISE_OPS.each do |op|
       receive( op, 'n' ) do |env|
-        value.send( op, env[:n] ).value
+        value.send( op, env[:n] )
       end
     end
 

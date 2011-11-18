@@ -632,10 +632,6 @@ module P
         end
       end
 
-      infix( :bor,     80 )
-      infix( :xor,     90 )
-      infix( :band,   100 )
-
       infix( :and,    110 )
       infix( :or,     110 )
 
@@ -647,6 +643,10 @@ module P
       infix( :lte,    120 )
 
       infix( :comp,   130 )
+
+      infix( :bor,    132 )
+      infix( :xor,    132 )
+      infix( :band,   136 )
 
       infix( :lshift, 140 )
       infix( :rshift, 140 )
