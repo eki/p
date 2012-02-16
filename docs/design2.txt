@@ -1,0 +1,626 @@
+
+
+class Point
+  r :x, :y
+
+  def initialize( x, y )
+    @x, @y := x, y
+
+  def +( point )
+    Point.new( x + point.x, y + point.y )
+
+
+Alternatively:
+
+  def +( point )
+    clone( x: x + point.x, y: y + point.y )  # sets @x, @y in clone of self
+                                             # equiv to self.clone( ... )
+
+These create two objects the class is bound to Point has method new, the
+prototype is defined by most of what is seen in the body of the class
+definition.
+
+
+Part of the magic of the class form is the inclusion of methods from Class into
+the class object and from Object into the object.  Also, creating a test method
+based on the name of the class.  Oh, and the class itself should have a method
+to return it's name.  Or should it?
+
+class Point
+  r :x, :y    # can user define macros for creating methods?
+
+  def initialize( x, y )   # by using an initialization method we can allow
+    @x, @y := x, y         # the use of helper methods to initialize ivars
+
+  def +( p )
+    Point.new( x + p.x, y + p.y )
+
+  def Point.call( x, y )   # This has class scope / definition
+    new( x, y )
+
+
+Point.methods                            # => ['new', 'call', ...]
+Point.new( 0, 0 )                        # => (Point x: 0, y: 0)
+Point.new( 0, 0 ).instance_variables     # => ['x', 'y']
+Point.new( 0, 0 ).x                      # => 0
+Point.new( 0, 0 ).methods                # => ['x', 'y', '+', ...]
+Point( 1, 2 )                            # => (Point x: 1, y: 2)
+p1, p2 := Point( 1, 2 ), Point( 3, 7 )
+p1 + p2                                  # => (Point x: 4, y: 9)
+p1.point?                                # => true
+p1.rectangle?                            # => nil
+
+
+  class Object
+    def method_missing( name, args: *, fn? )
+      nil
+
+    def inspect
+      to_s
+
+    def instance_variables
+
+    def methods
+
+    def to_s
+      "(Object)"
+
+    def ==( other )
+      # compare based on object id / memory address
+
+    def hash
+      # hash based on object id / memory address
+
+    def mutate!
+      raise "Error:  No mutable form available."
+
+    def mutable?( ivar? )
+      if ivar
+        # special form or function needed
+      else 
+        instance_variables.any? (iv) ->
+          mutable?( iv )
+
+    def immutable?
+      ! mutable?
+
+    def included( obj )   # callback when an object is included in another
+      nil
+
+
+  class Class
+    include Object
+
+    def new( args: * )
+      allocate( prototype, args )  # allocate is a special form that takes a
+                                   # prototype object and clones it, calls
+                                   # initialize with arguments, allowing
+                                   # instance variables to be created.
+    def prototype
+      Object.new
+
+
+
+
+Other prototype syntax to consider:
+
+  prototype Point
+    r :x, :y
+
+    def initialize( x, y )
+      @x, @y := x, y
+
+    def +( point )
+      clone( x + point.x, y + point.y )
+
+  Point.new( 3, 4 )       # new is an alias for clone?  Defined in Object,
+                          # Object is automatically included in every
+                          # prototype?
+
+  Point.clone( 3, 4 )
+
+No, I don't love this.
+
+  prototype origin
+    r :x, :y
+
+    def initialize( x, y )
+      @x, @y := x, y
+
+    def +( point )
+      clone( x + point.x, y + point.y )
+
+  prototype Point
+    def new( x, y )
+      origin.clone( x, y )
+
+Or:
+
+  class Point
+    prototype origin
+      r :x, :y
+
+      def initialize( x, y )
+        @x, @y := x, y
+
+      def +( point )
+        clone( x + point.x, y + point.y )
+
+      def point?
+        true
+
+    def new( x, y )
+      origin.clone( x, y )
+
+    def call( x, y )
+      new( x, y )
+
+Point.origin
+Point.new( 3, 4 )
+Point.origin.point?
+
+Or:
+
+
+  class Point
+    prototype origin
+      r( x: 0, y: 0 )  # sets @x, @y, creates methods 'x', 'y'
+
+      def +( point )
+        clone( x + point.x, y + point.y )
+
+      def point?
+        true
+
+    def new( x, y )
+      origin.clone( x, y )
+
+    def call( x, y )
+      new( x, y )
+
+
+Or:
+
+  origin := object
+    @x, @y := 0, 0
+
+    def +( point )
+      clone( x + point.x, y + point.y )
+
+    def point?
+      true
+
+  Point := object
+    def new( x, y )
+      origin.clone( x, y )
+
+    def call( x, y )
+      new( x, y )
+
+  Rectangle := object
+    @prototype := object
+      @x, @y, @w, @h := 0, 0, 1, 1
+
+      r :x, :y, :w, :h
+
+      def area
+        w * h
+
+      def contains?( x, y? )
+        unless y
+          y = x.y
+          x = x.x
+
+        x >= @x && y >= @y && x <= @x + w && y <= @y + h
+
+    def new( x, y, w, h )
+      @prototype.clone( x, y, w, h )     # HOW DOES CLONE NO WHICH IVARS TO
+                                         # ASSIGN IF THERE ISN'T initialize ?
+    def call( x, y, w, h )
+      new( x, y, w, h )
+
+
+Initialize could be a keyword?
+
+  Rectangle := object
+    @prototype := object
+      @x, @y, @w, @h := 0, 0, 1, 1
+
+    def new( x, y, w, h )
+      clone @prototype
+        @x, @y, @w, @h := x, y, w, h
+
+
+The 'clone' keyword takes an object and makes a copy allowing the instance
+variables to be set.  The 'object' keyword clones object and allows instance
+variables and methods to be defined.  How about a combination?
+
+  Point := clone Object
+    @origin := clone Object
+      @x, @y := 0, 0
+
+      r :x, :y
+
+      def +( point )
+        clone self
+          @x, @y := x + point.x, y + point.y
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+The argument to clone could be optional.  By default it would be self ||
+Object:
+
+
+  Point := clone
+    @origin := clone
+      @x, @y := 0, 0
+
+      r :x, :y
+
+      def +( point )
+        clone
+          @x, @y := x + point.x, y + point.y
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+
+The r, w, rw keywords are just syntactic shorthand for:
+
+  Point := clone
+    @origin := clone
+      @x, @y := 0, 0
+
+      def x
+        @x
+
+      def y
+        @y
+
+      def +( point )
+        clone
+          @x, @y := x + point.x, y + point.y
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+
+Should single line definitions just look like function definitions?
+
+  
+  Point := clone
+    @origin := clone
+      @x, @y := 0, 0
+
+      x => @x
+      y => @y
+
+      def +( point )
+        clone
+          @x, @y := x + point.x, y + point.y
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+A short hand macro?
+
+  Point := clone
+    @origin := clone
+      r( x: 0, y: 0 )     # @x, @y := 0, 0
+                          #
+                          # x => @x
+                          # y => @y
+
+      r( x: 0, y: 0 )
+
+      def +( point )
+        clone
+          @x, @y := x + point.x, y + point.y
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+
+
+  Point := clone
+    @origin := clone
+      r( x: 0, y: 0 )
+
+      def +( point )
+        clone
+          @x, @y := x + point.x, y + point.y
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+What about object as shorthand for clone + assignment:
+
+
+  object Point
+    object @origin
+      r( @x: 0, @y: 0 )  # That these are meant to be single assignment is lost
+
+      def +( point )
+        Point.new( x + point.x, y + point.y )
+
+      def point?
+        true
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+
+  object Point
+    object @origin
+      @x, @y := 0, 0
+
+      r :x, :y
+
+      def +( point )
+        Point.new( x + point.x, y + point.y )
+
+      def point?
+        true
+
+    def new( x, y )
+      clone @origin
+        @x, @y := x, y
+
+Class shorthand:
+
+  class Point                             object Point
+    r :x, :y                                object @prototype
+                                              @x, @y := nil, nil
+    def initialize( x, y )                    
+      @x, @y := x, y                          r :x, :y
+                                  
+    def +( point )                            def +( point )
+      new( x + point.x, y + point.y )           Point.new( x + point.x, 
+                                                           y + point.y )
+
+                                              def point?
+                                                true
+
+                                            def new( x, y )
+                                              clone @prototype
+                                                @x, @y := x, y
+
+
+
+Function argument list definitions:
+
+Simple, no args:
+
+f => puts( "I'm f!" )
+-> puts( "I'm anon!" )
+
+Single arg:
+
+f(x) => puts( "x: #{x}" )
+
+N sequenced args:
+
+f(x,y) => puts( "x: #{x}, y: #{y}" )
+g(x,y,z) => puts( "I have 3 args" )
+
+Default values for sequential args:
+
+f( x: 3 ) => puts "x: #{x}"
+
+Multiple default values:
+
+f( x: 3, y: 4 ) => x + y
+
+Optional argument:
+
+f( x?, y? ) => puts( "x: #{x}" )
+
+Optional is just a shorthand for nil as default:
+
+f( x: nil, y: nil ) => puts x.nil?
+
+Passing by name on call:
+
+f( x: 1, y: 2 ) => x + y
+
+f()          #=> 3
+f(4)         #=> 6
+f(4,5)       #=> 9
+f(x: 3)      #=> 5
+f(y: 10)     #=> 11
+
+Note, if passed by name, ALL args must be passed by name.  This would be
+illegal:
+
+f( 3, x: 4 )   #=> ILLEGAL  (optionally, we could try to add definitions later)
+                             - for example, does this set x to 3, then 4 ?
+                             - or, does 3 get assigned to y?
+
+Globbing:
+
+f( x, y, rest: * ) => rest
+
+f(1,2)      #=> []
+f(1,2,3)    #=> [3]
+f(1,2,3,4)  #=> [3,4]
+
+Globbing with pass by name:
+
+f( x, y, rest: * ) => rest
+
+f( x: 3, y: 4 )         #=> {}
+f( x: 3, y: 4, z: 10 )  #=> { z: 10 }
+
+This re-inforces the idea that call by name should be all or nothing.
+
+How to indicate trailing function?  With sequential calls, it's simply the last
+defined argument:
+
+f( x, y, g ) => g( x, y )
+
+f( 3, 4 ) (n, m) -> n + m    #=> 7
+
+With globbing it requires allowing trailing named arguments:
+
+f( rest: *, fn ) => fn( rest )
+
+f( 1, 2, 3 ) (ary) -> ary.sum   #=> 6
+f( 2, 3, 4, (ary) -> ary.sum )  #=> 9
+f( 3, 4, 5 ) ary ->
+  ary.sum                       #=> 12
+f 4, 5, 6, ary ->
+  ary.sum                       #=> 15
+
+With named params it gets really difficult, how can we indicate the last
+argument is a trailing function?
+
+map( rest: *, op: & ) =>
+  ary := []
+  i = 0
+
+  while i < rest.length
+    ary[i] = op( rest[i] )
+
+  ary
+
+map( 1, 2, 3 ) n -> n + n       #=> [2,4,6]
+map( foo: 1, bar: 2 ) ...       #  ????????
+
+
+map_array( array, op: & ) =>
+  ary := []
+  i = 0
+
+  while i < array.length
+    ary[i] = op( array[i] )
+
+  ary
+
+map_dictionary( dictionary, op: & ) =>
+  dict = {}
+
+  dict.each (k,v) ->
+    dict[k] = op( v )
+
+  dict
+
+map( rest: *, op: & ) =>
+  if rest.array?
+    map_array( rest, op )
+  else if rest.dictionary?
+    map_dictionary( rest, op )
+
+
+map( foo: 1, bar: 2 ) (v) -> v + v   #=> { foo: 2, bar: 4 }
+map( 1, 2, 3 ) (n) -> n + n          #=> [2,4,6]
+
+
+So, does
+
+  name: &
+
+Denote a required param?  An optional param?
+
+What about:
+
+  &
+
+map( rest: *, & )             # required trailing function
+map( rest: *, &: n -> n+n )   # optional function with default value
+map( rest: *, &? )            # optional function with nil value
+
+Since & is not a valid id, you can't name it when calling by name.  It can only
+be set positionally.  How to call the trailing function?
+
+each( rest: *, & ) =>
+  rest.each v -> yield v
+
+
+Interesting thought:
+
+  Closures are called automatically, with or without parens
+
+    f(n) => ...
+    f  #=> f is a closure so it's called automatically
+
+  Functions are objects that are only called with parens
+
+    f(n) => ...
+    g = &f       #=> f is a closure, g is a function
+    g            #=> evals to itself, no call is made
+    g.arity      #=> this makes sending messages easy
+    g(3)         #=> call the function in the current env with 3 as an arg
+    g.call( args: [3], environment: environment )   # equiv to g(3)
+
+Within a function call, self evaluates to the function definition:
+
+  f =>
+    puts( "arity: #{self.arity}" )
+
+But then, what would the method itself be within a message send?
+
+  class Point
+    r :x, :y
+
+    def initialize( x, y )
+      @x, @y := x, y
+                                  
+    def +( point )
+      new( x + point.x, y + point.y )
+
+    def info
+      puts "self: #{self}"      # refers to an instance of Point
+      puts "method: #{method}"  # refers to info ?
+
+
+Is there value in this?  Is there a better name than 'method'?
+
+What are all our self-referential special bindings?
+
+  self:  Within a method refers to the object receiving the message
+  self:  Within a function refers to the function
+  environment:  Always refers to the lexical environment chain and available
+                bindings.
+
+What if...
+
+  We want an anonymous function to be able to call itself?
+
+    self.call( args: [...], environment: environment )    ???
+    call( ... )
+    self( ... )
+
+Maybe within a method, the method itself can be looked at via self...
+
+    self.method
+    self.receiver
+
+Also for method calls (and multiple assignments), we'll need the explode
+operator:
+
+  x, y = *[1,2]
+
+  f(x,y) => x + y
+  f(*[3,4])          #=> 7
+
+What kind of assignment should the => operator make?
+
+  f := (x,y) -> x + y
+  f = (x,y) -> x + y
+
+  f(x,y) :=> x + y
+  f(x,y) => x + y
+
+The vm should be built on the concept that there aren't really calls as much as
+message sending.  There aren't math operators as much as sending '+', for
+example.
+
+

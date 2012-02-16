@@ -1,0 +1,81 @@
+
+Documenting Code
+
+# This is a comment to the end of the line... it is ignored
+
+/* This is a comment to the
+   closing */   # Also ignored
+
+x := 3
+x -- This is a comment about x for until the end of the line
+x ---
+  This is an indentation based comment about x until the end of the line
+
+Note:  May need a different operator symbol since this could get confused with
+sub / neg operators.
+
+Documentation can be specified any time and will be attached by environment
+automatically.
+
+origin = new( -> x, y := 0, 0 )
+origin -- This is the origin... (0,0)
+
+In the below example, environment holds the documentation and then attaches it
+to origin on bind.
+
+origin -- This is the origin... (0,0)
+origin = new( -> x, y := 0, 0 )
+
+origin.help  # => "This is the origin... (0,0)"
+
+It should only be possible to document immutable objects, object properties,
+and functions?  Or should it be possible to document any value?
+
+x := 3
+x -- This is three!
+
+3.help  # => "This is three!"
+
+What about subvalues:
+
+foo = new( -> x := 3 )
+
+foo -- This is a foo!
+foo.x -- This is the x of foo!
+
+foo.help    # => "This is a foo!"
+foo.x.help  # => "This is the x of foo!"
+
+bar := foo.clone( -> y := 3 )
+
+bar.help    # => "This is a foo!"   (found via prototype)
+bar.y.help  # => ""
+bar.x.help  # => "This is the x of foo!"
+
+Should 
+
+foo.x.help
+
+be interpreted as
+
+foo.help( :x )
+
+That would allow documenting any message an object might receive.  The default
+would be to send :x to foo and then call help on the resulting object.  No
+message would be interpreted as help for self.
+
+We could use the comment symbol.
+
+# Just a comment
+
+x ## This is a help comment for x
+x ###
+  This is detailed help for x
+  the string is ended via indentation
+y ## This is help for y
+
+
+Point ###
+  A Point represents the (x,y) coordinates of a location in space.
+
+

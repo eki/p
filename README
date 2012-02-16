@@ -1,0 +1,46 @@
+P - An Experimental Programming Language Design / Implementation
+
+So, this is a functional / prototypal object oriented programming language that
+I'm designing.  It's meant to be a general purpose language, eventually.  For
+now, it's a parser that mostly gets the job done and the start of a core api.
+
+P is implemented in Ruby, if there's ever a final version of this language it
+will NOT be implemented in Ruby.  Ruby is a fine language, but it doesn't
+actually provide much value as an implementation choice.  I chose Ruby
+because, as someone who has years and years of Ruby experience, I can 
+prototype quickly with it.
+
+At one point P was short for Patina, but I'm not sure I care for that name.
+So, assume that P isn't short for anything and the language still needs a
+proper name.
+
+In lieu of proper documentation here are a few notes:
+
+  * bin/p is the repl.  There isn't a prompt, so just start entering
+    expressions.
+
+  * There are several small test programs under p/test
+
+  * You can run the test programs with:
+
+      > rake test
+
+    Or,
+
+      > bin/p p/test/fib.p
+
+  * See docs/ for an assortment of my thoughts on the design of the language.
+    To some degree these docs are me throwing ideas at the wall to see what
+    sticks.  Which is to say, sometimes they accurately represent the language
+    and sometimes they represent failed ideas, and sometimes they represent the
+    direction I want to move in.
+
+  * At this time the focus has been on parsing the language itself, evaluating
+    expressions, managing the environment and other basic runtime structures,
+    and defining some of the core api.  The actual implementations of core data
+    structures are beyond ridiculously poor, when (or if) the language and api 
+    design make sense at some point in the future the proper data structures 
+    can be written.
+
+  * It probably goes without saying, this language is NOT production ready.
+

@@ -1,0 +1,54 @@
+
+Environment and Objects are mostly the same thing.
+
+Special Forms:
+
+  ->              Function definition
+  =               Mutable bind
+  :=              Immutable bind
+  defined?        Check to see if binding is defined
+  new             Create a new object
+  .               Send a message to an object
+  self            Environment or Object
+
+Examples:
+
+  sq := (n) -> n * n     # bind 'sq' within the current environment (self) to
+                         # a function that squares its argument
+
+  foo := ->                        
+    bar = 0                 
+    (n) -> bar = bar + sq( n )
+
+
+  F := foo()
+  F( 2 )       # F contains a closure, this call returns 4, bar is now 4
+  F( 3 )       # same closure so, this call returns 13, bar is now 13
+
+  defined?( bar )    # Is bar defined?
+  defined?( 'bar' )  # equivalent
+
+  origin := new ->
+    @x, @y := 0, 0
+
+    x := -> @x
+    y := -> @y
+
+    + := (p) -> clone ->
+      @x, @y := p.x + x, p.y + y         # how do x and y resolve?
+
+  Point := new ->
+    new := (x, y) ->
+      origin.clone ->
+        @x, @y := x, y      # calling self here would be origin, so...
+                            # x is from environment, self.x is from origin
+
+  p := Point.new( 3, 4 )    # (@x: 3, @y: 4)
+  q := Point.new( 5, 0 )    # (@x: 5, @y: 0)
+  r := p + q                # (@x: 8, @y: 4)
+  p.x                       # 3
+  p.y                       # 4
+  p.@x                      # 3     (we may choose to make this illegal)
+
+I wonder if self should always refer to an object, and environment should refer
+to the current execution environment.  

@@ -1,0 +1,6 @@
+
+1.  Prototypal
+2.  Class is important for tying construction to actual objects and allowing
+      rebinding of prototype object
+3.  Documentation -- how?
+

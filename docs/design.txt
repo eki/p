@@ -1,0 +1,359 @@
+Design of the Patina Programming Language
+-----------------------------------------
+
+The goal of this language is to find a higher level than languages like Ruby
+and Python.  To be higher level, one must make sensible trade-offs.  The
+programmer is asked to give-up some power in exchange for something beneficial.
+For example, Java is higher level than C because it asks programmers to give up
+pointers in exchange for less powerful references with the benefit that garbage
+collection becomes possible.  Higher level doesn't mean better, it means moving
+further away from the machine as the primary abstraction.
+
+Functional
+----------
+
+The language should provide first class functions with lexical closures.
+
+The language requires tail call optimization.
+
+The syntax for function definition should be as terse as possible.
+
+Possible syntax:
+
+  x -> x * 2     # A function that takes an argument 'x' and has the body
+                 # x * 2.
+
+  -> puts "foo\n"  # A function that takes no arguments.
+
+  (x, y) -> x + y  # A function that takes two arguments.
+
+  f(x) => x * x    # A named function, this would be equivalent to:
+
+  f = x -> x * x
+
+  f(x) =>          # A multi-line function, the last expression is the 
+    y = x * x      # return value for the function
+    y + 10
+
+Call syntax:
+
+  f(10)  # => 110  # It would be nice to make parens optional:
+
+  f 10   # => 110  # But, this shouldn't be a sticking point.
+
+  f(n)   => n + 1
+
+  g(x,f) =>
+    f(x) * 10
+
+  g(3, f)  # => 40
+
+  g(4) (x) ->    
+    x * 2      # => 80    # A function call followed by a definition
+                          # passes the definition as the last arg to the call
+
+
+Objects
+-------
+
+Everything should be an object inheriting from Object.
+
+Objects combine instance variables and methods.
+
+Instance variables are denoted with one of the sigils '@' or '~'.  Like so:
+
+  @foo * @bar
+
+  ~baz = 400
+
+These sigils indicate mutability.  Instance variables prefixed with '@' are
+immutable.  Instance variables prefixed with '~' are mutable.
+
+All methods slots are immutable.
+
+Objects that consist of only immutable slots which are initialized with
+immutable objects are said to be immutable.
+
+Objects containing either a single mutable slot or a slot containing a mutable
+object are said to be mutable.
+
+An effort should be made to make as many core objects immutable as possible.
+
+Data structures should typically be immutable.  That is, persistent data
+structures should make up the bulk of data structures in patina.  An immutable,
+persistent data structure can always be wrapped by a mutable object to provide
+a mutable version of the same data structure.
+
+Object creation must be atomic and set all instance variables simultaneously.
+Instance variables must be declared mutable / immutable at the time of
+creation.
+
+Suppose:
+
+  class Point
+    initialize(x,y) =>
+      @x = x               # An initialize based constructor could work if
+      @y = y               # we only allow single assignment to @ instance 
+                           # variables.  Right?
+
+    x => @x
+    y => @y
+    +(p) => Point.new( p.x + x, p.y + y )
+
+ 
+  class MutablePoint
+    initialize(x,y) =>
+      ~x = x
+      ~y = y
+
+    x => ~x
+    y => ~y
+
+    x=(x) => ~x = x
+    y=(y) => ~y = y
+
+    +(p) =>
+      ~x += p.x
+      ~y += p.y
+
+Note: The operator function declarations are going to be a tremendous parsing
+issue.
+
+  p = Point.new( 3, 4 )
+  mp = MutablePoint.new( 2, 2 )
+
+  mp + p
+  mp.x  # => 5
+  mp.y  # => 6
+
+  p2 = p + mp
+  p.x   # => 3
+  p2.x  # => 5
+
+
+Significant Whitespace
+----------------------
+
+Indentation is used to denote blocks.  Function definitions, for example, may
+take a block.
+
+Blocks can also be created or extended by separating expressions on the same
+line with semicolons.  For example:
+
+  f(x,y) => z = x * y; puts "z: #{z}"; z
+
+
+Expressions
+-----------
+
+There are no statements in Patina.  Everything is an expression evaluating to a
+value of some kind.
+
+
+Truth
+-----
+
+Only nil and false evaluate to false.  All other values evaluate to true.
+
+
+Conditionals
+------------
+
+Patina supports if / unless in two formats:
+
+if true             # This first form supports a single expression or block
+  do_this
+
+unless true
+  dont_do_this
+
+do_this       if true          # This form accepts only a single block
+dont_do_this  unless true
+  
+
+if true
+  do_this
+else
+  otherwise_do_this
+
+if true
+  do_this
+else if 3
+  do_this_other_thing
+else                            # else always binds to the previous if while
+  otherwise_do_this             # taking into account nesting via indentation
+
+
+Note:  else is not valid in conjunction with unless
+
+
+The ternary conditional operator:
+
+true ? do_this : otherwise_this
+
+
+The case expression:
+
+  case n
+    when 1 the puts "n is 1"
+    when 2
+      puts "n is 2"
+    else
+      puts "don't know what n is : //"
+
+
+Looping
+-------
+
+Looping is generally discouraged because it forces sequential evaluation and is
+often not what the programmer intended.  But, here it is anyway:
+
+The while / until expressions have similar semantics to if / unless but in a
+looping context.
+
+while true
+  do_this
+
+until true
+  dont_do_this
+
+do_this       while true
+dont_do_this  until true
+
+
+Environment
+-----------
+
+Functions are defined within an Environment.  Function definition results in a
+Closure which captures the environment and pairs it with the definition.
+
+Environments may be thought of as mutable objects similar to this:
+
+  class Environment
+    initialize( outer ) =>
+      @outer = outer
+      @bindings = MutableDictionary.new
+
+    get( name ) 
+      @bindings[name] || (outer && outer.get( name ))
+
+    set( name, value )
+      if outer && outer.get( name )
+        outer.set( name, value )
+      else
+        @bindings[name] = value
+
+For completeness:
+
+  class Closure
+    initialize( fn, env )
+      @fn, @env = fn, env
+
+    call( *args ) => fn.apply( env, *args )
+
+
+At this point we're starting to get into vm intrinsics, we cannot define
+Function's call or apply methods in Patina itself (unless we choose to write a
+vm for Patina in Patina itself).
+
+Note:  When the compiler encounters variable lookup or assignment it replaces
+those lines with calls to Environment get and set for the current Environment.
+For example:
+
+  foo = 3    # Becomes: current_env.set( 'foo', 3 )
+  bar = foo  # Becomes: current_env.set( 'bar', current_env.get( 'foo' ) )
+
+
+Top Level
+---------
+
+The top level is prepopulated with bindings for core objects (which may, of
+course, be classes or functions).
+
+Note:  Because the environment bindings are all mutable, anything may be
+overridden.  That is:  there are not any constants within the core environment.
+However, you cannot change the meaning of top level bindings within other
+scopes.
+
+Further, the objects bound at the top level may be entirely immutable.
+
+
+Classes
+-------
+
+A Class is an object that's responsible for the creation of new objects.
+
+There are otherways to create and compose objects.
+
+  class Object
+    instance_variables -> 
+      # intrinsic, returns a list of instance variables
+
+    methods ->
+      # intrinsic, returns a list of methods
+
+    copy ->
+      # intrinsic, creates a copy of this object (for an immutable object, the
+      # object itself is returned).  For mutable objects, this is a deep copy.
+
+    mutable? ->
+      # Are any of the instance variables mutable?
+      # Are any of the immutable instance variables bound to a mutable object?
+
+    immutable? ->
+      ! mutable?
+
+    # ????
+
+    extend( object ) ->
+      # intrinsic, return a new object that is a composition of this object
+      # and the argument object.  The argument objects instance variables and
+      # methods will override any conflicting bindings from this object
+
+    method_missing( name, *args ) ->
+      nil  # this is called if an environment lookup fails to find a method
+           # with the given name.  The default return value is nil, this
+           # evaluates to false and allows doing things like:
+           #
+           #   foo.number? || foo.string?
+           #
+
+
+Method Call Environment
+-----------------------
+
+The environment for method calls is chained against object prototypes not
+lexical scope.  That is to say:
+
+  f(x) =>
+    y = 100
+
+    class Foo
+      initialize(z) =>
+        @z = 123
+        puts "y is undefined"  unless y    # => "y is undefined"
+
+      z => @z
+
+    class Bar extends Foo
+      initialize(b) =>
+        puts "@z: #{z}"  # => "@z: 123"
+
+
+The include keyword
+-------------------
+
+  class Foo
+    members => instance_variables + methods
+
+  class Bar
+    include members
+
+    initialize(z) =>
+      @z = z
+
+    z => @z
+
+  bar = Bar.new
+  bar.members  # => ['@z', 'z']
+

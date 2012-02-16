@@ -1,0 +1,476 @@
+
+Assignment (binding)
+
+x  =  3    # mutable assignment
+y :=  4    # immutable assignment
+x  = 10    # okay
+y  = 10    # ERROR
+y := 10    # ERROR
+x := 20    # ERROR
+
+Functions
+
+sq := (x) -> x * x        # simple squaring function...
+                          # is x mutable or immutable?
+                          #   default: immutable
+
+sq( 4 )     # => 16       # call by position
+sq( x: 5 )  # => 25       # call by name
+
+log := (args: *) ->       # glob takes all args and puts them in args
+  # ... print each arg
+
+
+log( foo, bar )           # args contains [foo, bar]
+                          # is args mutable or immutable?
+                          #   default: immutable
+
+log( a: 1, b: 2 )         # args contains {a: 1, b: 2}
+
+log( 1, 2, c: 3 )         # ERROR:  functions can only be
+                          #         called by position OR name, not both
+
+log( args: foo )          # args contains {args: foo}
+                          #   the value of the glob binding cannot be passed
+                          #   by name
+
+log := (args: *) ->
+  args.each (arg) ->      # does this imply that each for both maps and lists
+    puts arg              #   behaves the same way? (iterate over values?)
+                          # The alternative would be to treat the argument
+                          #   list as {0 => 1, 1 => 1} for pass by position.
+
+
+fib := (n)  ->            # n is immutable, set to 1 by default
+  n > 1 ? n + fib( n - 1 ) : 1
+
+fib         # => 1
+fib( 3 )    # => 6        # NOTE: fib is tail recursive
+fib( n: 3 ) # => 6
+
+foo := (n) ->             # No default, n is immutable
+foo := (n = 1) ->         # Default is 1, n is mutable
+foo := (n = ?) ->         # Default is nil, n is optional, n is mutable
+foo := (n: 1) ->          # Default is 1, n is immutable
+foo := (n: ?) ->          # Default is nil, n is optional, n is immutable
+foo := (n?) ->            # Default is nil, n is optional, n is immutable
+
+foo := (x: ?, y: ?) ->
+  x || y
+
+foo                # => nil
+foo( 1 )           # => 1
+foo( 1, 2 )        # => 1
+foo( 2, 1 )        # => 2
+foo( x: 1 )        # => 1
+foo( y: 2 )        # => 2
+foo( x: 1, y: 2 )  # => 1
+foo( y: 2, x: 1 )  # => 1
+
+bar := (x, y: ?) ->
+  x && y
+
+bar                # ERROR (wrong number of arguments, x is not optional)
+bar( 1 )           # => nil
+bar( x: 1 )        # => nil
+bar( y: 1 )        # ERROR (wrong number of arguments, x is not optional)
+bar( 1, 2 )        # => 2
+bar( x: 1, y: 2 )  # => 2
+bar( y: 2, x: 1 )  # => 2
+bar( y: 1, x: 2 )  # => 1
+
+
+baz := (x = ?, y = ?) ->
+  y ||= 1
+  x ||= y
+  x + y
+
+baz                # => 2
+baz( x: 3 )        # => 4
+baz( y: 2 )        # => 4
+baz( x: 4, y: 3 )  # => y
+
+Data Structures
+
+String:  "foo"
+         'foo'
+         "foo #{interpolation}"
+         'foo #{not interpolated!}"
+         :single_world_prefix
+         :: until the end of the line (starts at first non-whitespace char
+         :::
+           block indented string
+           ends when indentation ends or at end of input
+         foo  # a call to foo
+
+         ''   # empty string
+         ""   # empty string
+
+List: [1,2,3]
+      []      # empty list
+
+Map: {foo: 1, bar: 2}        # foo and bar are strings  (trie)
+     {foo => 1, bar => 2}    # foo and bar are objects  (hash)
+
+Set: {foo, bar}              # foo and bar are objects  (hash-based set)
+                             # equivalent to {foo => foo, bar => bar} with
+                             # slightly different api
+
+     {}       # empty map / set
+
+
+Number: 1       # Fixnum
+        1.0     # Fixnum
+        1.5     # Rational (3/2)
+        1.5f    # Float
+        0xff    # Fixnum (hex notation) 255
+        01      # Fixnum (octal notation) 1
+        0b10    # Fixnum (binary notation) 2
+
+
+
+
+Objects ???
+
+new / clone
+
+foo := new ->
+  @a, @b := 1, 2
+
+  a := -> @a
+  b := -> @b
+
+  sum := (n?) -> a + b + (n || 0)
+
+foo           # => (a: 1, b: 2)
+foo.sum       # => 3
+foo.sum( 4 )  # => 7
+
+origin := new ->
+  @x, @y := 0, 0
+
+  x, y := -> @x, -> @y   # is this possible to parse?
+
+  + := (p) ->  # (anon a)
+    clone ->   # (anon b)
+      @x, @y := p.x + x, p.y + y        # p is from closure of anon a
+                                        # @x, @y are being set within env
+                                        #   of anon b
+                                        # x, y are being found in self
+                                        # clone takes an anon function and
+                                        #   adds self of clone to the anons
+                                        #   env before executing anon,
+                                        #   then clone raids the env for
+                                        #   new assignments and creates an
+                                        #   object from them
+
+Point := new ->        # closes on origin
+  new := (x, y) ->     # (anon a)
+    origin.clone ->    # (anon b)
+      @x, @y := origin.x + x, origin.y + y   # @x, @y are bing set within env
+                                             #   of anon b
+                                             # origin is from closure
+                                             # x, y are passed into anon a and
+                                             #   closed on by anon b
+
+
+origin                 # => (x: 0, y: 0)
+origin.x               # => 0
+origin.y               # => 0
+
+Point                  # => (new: closure)
+Point.new              # ERROR x is not optional, y is not optional
+p := Point.new( 1, 2 ) # => (x: 1, y: 2)
+p + origin             # => (x: 1, y: 2)
+p + p                  # => (x: 2, y: 4)
+
+p.+( p )               # => (x: 2, y: 4)
+
+p == p                 # => true  (defined in object)
+p == Point.new( 1, 2 ) # => false (object defines == as the same id)
+
+
+How would I "monkey patch" my version of "Point" to add an equals method?
+
+origin := origin.clone ->       # Shadows the binding of origin with a new
+  == := (p) ->                  # origin... but
+    p.x == x && p.y == y
+
+p = Point.new( 3, 4 )           # Returns a clone of the old origin because
+                                # the environment within Point.new was not
+                                # updated.
+
+If both class and prototype were defined at the same time and accessible from
+one another, then we could shadow the original in every case.
+
+Point := class ->
+  @prototype := new ->
+    @x, @y := 0, 0
+
+    x := -> @x
+    y := -> @y
+
+    + := (p) ->
+      clone ->
+        @x, @y = p.x + x, p.y + y
+
+    point? := -> true
+
+  prototype := -> @prototype
+
+  new := (x, y) ->
+    prototype.clone ->
+      @x, @y = x, y
+
+
+Now, monkey patch in an equals method:
+
+Point := Point.clone ->
+  @prototype := prototype.clone ->
+    == := (p) ->
+      p.x == x && p.y == y
+
+
+What about simplifying the code a little?
+
+Point := class ->
+  prototype := new ->
+    x, y := 0, 0
+
+    + := (p) ->
+      clone ->
+        x, y := p.x + x, p.y + y
+
+    point? := true
+
+  new := (x, y)
+    prototype.clone ->
+      x, y := x, y
+
+Note:  new is syntactic sugar for Object.prototype.clone
+
+Should more sugar be added to this?
+
+def +( p )                       # def always defines a function and makes
+  clone ->                       # an immutable binding, it acts as a statement
+    x, y := p.x + x, p.y + y     # requiring a block
+
+
+Note: class is syntactic sugar for Class.prototype.clone
+
+The default for Class.prototype.new could be to take * args and assign them
+  to like named values from prototype's binding:
+
+If, Point were defined without a new method:
+
+Point.new( x: 3, y: 4 )   # could set x, y := 3, 4
+
+
+The real problem is multiple levels of indentation and too much boilerplate.
+
+Could Ruby's initialize work?  No, it doesn't make any sense to define an
+initialize method on the prototype.
+
+Remove some of the arrows by making special forms?  We already have a
+theoretical def form.
+
+Should Object.prototype define a class method such that:
+
+Object.class            # => Class
+Object.prototype.class  # => Object
+
+It would be a handy way to store singleton objects to be shared between objects
+of the same class.  Although it might be better to store these in a top level
+closure?  I really only like classes as constructors with simpler semantics
+than clone.
+
+What about exprs on the left side of bindings?
+
+foo := 3
+bind( 'foo', 3 )
+bar := 'foo'
+bind( bar, 3 )
+
+
+class Point
+  x, y := 0, 0
+
+  def +( p )
+    Point.new( p.x + x, p.y + y )
+
+  def Point.new( x, y )
+    clone ->
+      x, y = x, y
+
+
+Point := new                         # here clone and new are special forms
+  prototype := new                   # they implicitly take an arg-less fn
+    x, y := 0, 0
+
+    def +( p )
+      clone
+        x, y := p.x + x, p.y + y
+
+  def new( x, y )
+    clone
+      x, y := x, y
+
+
+Point := new
+  prototype := new
+    x, y := 0, 0
+
+    def +( p )
+      clone x, y := p.x + x, p.y + y    # clone can take a single expr or block
+
+    def new( x, y )
+      clone x, y := x, y
+
+
+simple_struct := new x, y := 3, 4
+simple_struct.x  # => 3
+simple_struct.y  # => 4
+
+
+But, keep in mind that clone is still a message sent to an object.
+
+  def +( p )
+    self.clone x, y := p.x + x, p.y + y
+
+Maybe it would be better to have some kind of bracket that represents an
+anonymous function?
+
+Actually, the clone calls could already be one line like this:
+
+  def new( x, y )
+    clone -> x, y := x, y
+
+simple_struct := new
+  x := 3
+  y := 4
+
+simple_struct.x
+
+def +( p )
+  clone
+    x = p.x + x
+    y = p.y + y
+
+
+Point := new
+  prototype := new
+    x, y := 0, 0
+
+    def +( p )
+      clone
+        x := p.x + x
+        y := p.y + y
+
+    def inspect              # inspect would take a list of attribute names
+      [:x, :y]               # and send those to self and build a pretty string
+
+    def ==( p )
+      p.x == x && p.y == y
+
+    def to_s
+      :: (#{x},#{y})
+
+  def new( x, y )
+    clone 
+      x, y := x, y
+
+Point.prototype         # => (x: 0, y: 0)
+Point.prototype.to_s    # => "(0,0)"
+
+Add an attributes special form?
+
+Point := new
+  prototype := new
+    attributes x: 0, y: 0
+
+    def +( p )
+      clone
+        x := p.x + x
+        y := p.y + y
+
+    def inspect
+      attributes  # default [:x, :y]
+
+    def ==( p )
+      p.x == x && p.y == y  # default compare all attributes
+
+  def new( x, y )       # default, assign attributes in order
+    clone
+      x, y := x, y
+
+
+Point := class
+  prototype := new
+    attributes x: 0, y: 0
+    operators '+', '-', '*', '/'
+
+
+Where are attributes and operators defined?  Or, are they simply special forms?
+
+operators can be defined on or by Class.prototype (or Class?)
+
+attributes could be defined as a function if functions can always determine
+argument order.  Or, if an argument list can be passed to a def call?
+
+
+Switching gears...
+
+Meta programming:
+
+environment.bind( name, value )          # immutable assignment
+environment.defined?( name )             # is name defined in the environment
+environment.get( name )                  # lookup the value for name
+environment.set( name, value )           # mutable assignment
+
+environment.bindings                     # list of bindings
+
+environment.bindings.first.name          # name part of binding
+environment.bindings.first.value         # value part of binding
+environment.bindings.first.mutable?      # is this binding mutable?
+environment.bindings.first.immutable?
+
+Environment.top                          # returns the top level environment
+Environment.new( parent: top )           # create an environment
+
+
+object.call( args: * )                   # returns self
+function.call( args: * )                 # returns self
+closure.call( args: * )                  # executes body with given args
+
+Closure.new( function, environment )     # creates a closure
+
+Function.new( args, body )               # creates a function
+
+function.parameters                      # list of parameters
+
+Parameters.new( args: * )                # create parameters from args
+
+function.parameters.first.name           # name of the first parameter
+function.parameters.first.mutable?       # is this parameter mutable?
+function.parameters.first.immutable?
+function.parameters.first.required?      # is this parameter required?
+function.parameters.first.optional?
+function.parameters.first.default?       # does this parameter have a default?
+function.parameters.first.default        # the default value
+function.parameters.first.glob?          # foo: *
+function.parameters.first.block?         # foo: &
+
+environment.arguments                    # list of bindings (created by passed
+                                         # arguments)
+
+
+
+Block syntax
+
+foo := (fn: &) ->
+  fn
+
+foo                # foo( () -> 3 + 4 )      # this is hard to do!  Is it worth
+  3 + 4                                      # it in the general sense?
+
+
