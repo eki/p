@@ -33,6 +33,10 @@ module P
       list[0]
     end
 
+    def last
+      list.last
+    end
+
     def to_params
       Expr.params( self )
     end

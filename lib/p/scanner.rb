@@ -136,6 +136,10 @@ module P
       add( :until,              /until/,                                 )
       add( :fn,                 /->/,                                    )
       add( :return,             /return/,                                )
+      add( :raise,              /raise/,                                 )
+      add( :try,                /try/,                                   )
+      add( :rescue,             /rescue/,                                )
+      add( :ensure,             /ensure/,                                )
 
       add( :hash,               /=>/,                                    )
 

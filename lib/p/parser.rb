@@ -580,6 +580,14 @@ module P
         end
       end
 
+      prefix( :raise, 30 ) do |t|
+        if e = parse_expression( nil, Rule.new( :cif, 30 ) )
+          Expr.raise( e )
+        else
+          raise "return requires expression."
+        end
+      end
+
       assign( name: :assign )
       assign( name: :single_assign )
 
@@ -785,6 +793,58 @@ module P
 
       prefix( :while ) { |t| parse_statement( :while, t ) }
       prefix( :until ) { |t| parse_statement( :until, t ) }
+
+      # TODO:  Refator this mess
+      prefix( :try ) do |t|
+        list = []
+        if top === :newline && parse_line_separator
+          if block = parse_block( t.indent )
+            list << block  # try block
+
+            if top.indent == t.indent
+              consume( :newline )  while top === :newline
+
+              if top === :rescue
+                consume( :rescue )
+                if e = parse_rule( :value )
+                  if e.kind_of?( IdExpr )
+                    if block = parse_block( t.indent )
+                      list << Expr.rescue( e, block )
+                    else
+                      raise "Error: rescue without block"
+                    end
+                  else
+                    raise "Error: rescue expected id, got #{e}"
+                  end
+                else
+                  raise "Error: rescue without id"
+                end
+
+                consume( :newline )  while top === :newline
+              end
+
+              if top === :ensure
+                consume( :ensure )
+                if block = parse_block( t.indent )
+                  list << Expr.ensure( block )
+                else
+                  raise "Error: ensure without block"
+                end
+              end
+            end
+          else
+            raise "Error: try statement without block"
+          end
+        else
+          raise NewlineExpectedError.new
+        end
+
+        if list.length < 2
+          raise "Error: try statement without rescue or ensure"
+        end
+
+        Expr.try( *list )
+      end
 
       line_separator( :newline )
       line_separator( :semicolon )
