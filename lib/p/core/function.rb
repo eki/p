@@ -145,7 +145,7 @@ module P
     end
 
     def inspect
-      "(#{parameters.map { |p| p.inspect }.join( ', ' )}) -> #{code}"
+      source
     end
 
     def to_s
@@ -155,6 +155,8 @@ module P
     receive( :code )   { |env| code.to_s }
     receive( :source ) { |env| source }
     receive( :parameters_source ) { |env| parameters_source }
+    receive( :to_literal ) { |env| source }
+    receive( :to_string )  { |env| to_literal }
   end
 
   class Closure < Object
