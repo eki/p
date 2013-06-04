@@ -70,7 +70,7 @@ module P
         ary = Readline::HISTORY.to_a
 
         open( path, 'w' ) do |f|
-          f.puts( ary[([0,ary.length-100].min)..(ary.length)].to_yaml )
+          f.puts( ary[([0,ary.length-100].max)..(ary.length)].to_yaml )
         end
       end
     end
