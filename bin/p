@@ -58,7 +58,7 @@ module P
 
       if (path = history_file_path) && File.exists?( path )
         open( path, 'r' ) do |f|
-          ary = YAML.load( f.read )
+          ary = YAML.load( f.read ) || []  # empty file returns false
         end
       end
 
@@ -97,6 +97,8 @@ module P
           continue_read( line )
         rescue P::UnexpectedEndError => e
           continue_read( line )
+        rescue P::RaiseException => e
+          puts P.error( e.value ).to_s
         rescue => e
           puts e
           puts e.backtrace.join( "\n" )
@@ -129,6 +131,8 @@ module P
           continue_read( line )
         rescue P::UnexpectedEndError => e
           continue_read( line )
+        rescue P::RaiseException => e
+          puts P.error( e.value ).to_s
         rescue => e
           puts e
           puts e.backtrace.join( "\n" )
@@ -153,9 +157,11 @@ if files.empty?
   repl = P::Repl.new( OPTS )
 
   trap( 'INT' ) do 
-    repl.save_history
-    puts
-    exit
+    Thread.new do
+      repl.save_history
+      puts
+      exit
+    end
   end
 
   repl.load_history
