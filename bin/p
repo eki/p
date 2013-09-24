@@ -17,6 +17,10 @@ OptionParser.new do |opts|
     OPTS[:evaluate] = v
   end
 
+  opts.on( "-i", "--interactive", "Force a repl session." ) do |v|
+    OPTS[:interactive] = v
+  end
+
   opts.on( "-r", "--reduce", "Parse and reduce expressions" ) do |v|
     OPTS[:reduce] = v
   end
@@ -29,7 +33,7 @@ module P
     attr_reader :environment, :opts
 
     def initialize( opts={} )
-      @environment = Environment.new
+      @environment = opts[:environment] || Environment.new
       @opts = { evaluate: true }.merge( opts )
     end
 
@@ -152,7 +156,16 @@ end
 
 files = ARGV.select { |arg| File.exist?( arg ) && File.file?( arg ) }
 
-if files.empty?
+OPTS[:environment] = P::Environment.new
+
+files.each do |fn|
+  open( fn, 'r' ) do |f|
+    tree = P.parse( f.read )
+    tree.evaluate( OPTS[:environment] )
+  end
+end
+
+if files.empty? || OPTS[:interactive]
 
   repl = P::Repl.new( OPTS )
 
@@ -167,15 +180,6 @@ if files.empty?
   repl.load_history
   repl.read
   repl.save_history
-
-else
-
-  files.each do |fn|
-    open( fn, 'r' ) do |f|
-      tree = P.parse( f.read )
-      tree.evaluate( P::Environment.new )
-    end
-  end
 
 end
 
