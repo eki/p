@@ -1,46 +1,297 @@
 P - An Experimental Programming Language Design / Implementation
 
-So, this is a functional / prototypal object oriented programming language that
-I'm designing.  It's meant to be a general purpose language, eventually.  For
-now, it's a parser that mostly gets the job done and the start of a core api.
+This is a programming language design I've been playing around with.  I've been
+calling the language 'P', but this could be short for Placeholder, as I haven't
+thought of a proper name as yet.
 
-P is implemented in Ruby, if there's ever a final version of this language it
-will NOT be implemented in Ruby.  Ruby is a fine language, but it doesn't
-actually provide much value as an implementation choice.  I chose Ruby
-because, as someone who has years and years of Ruby experience, I can 
-prototype quickly with it.
+As this is just a prototype, I've been implementing P in Ruby.  The goal is to
+focus on the language's syntax and the interface into the runtime libraries.  I
+can prototype quickly in Ruby, hence my choice.
 
-At one point P was short for Patina, but I'm not sure I care for that name.
-So, assume that P isn't short for anything and the language still needs a
-proper name.
+Getting Started
+---------------
 
-In lieu of proper documentation here are a few notes:
+You'll need Ruby.  I've been using Ruby 2.0, but it would likely work fine with
+Ruby 1.9.
 
-  * bin/p is the repl.  There isn't a prompt, so just start entering
-    expressions.
+Use git to clone the repository.
 
-  * There are several small test programs under p/test
+To run the repl:
 
-  * You can run the test programs with:
+  > bin/p
 
-      > rake test
+You won't see any prompt, but you can start typing in expressions, for 
+example:
 
-    Or,
+  > bin/p
+  1 + 1
+  2
 
-      > bin/p p/test/fib.p
+Easy!
 
-  * See docs/ for an assortment of my thoughts on the design of the language.
-    To some degree these docs are me throwing ideas at the wall to see what
-    sticks.  Which is to say, sometimes they accurately represent the language
-    and sometimes they represent failed ideas, and sometimes they represent the
-    direction I want to move in.
+Okay, here are a few brief examples of what we can do with P:
 
-  * At this time the focus has been on parsing the language itself, evaluating
-    expressions, managing the environment and other basic runtime structures,
-    and defining some of the core api.  The actual implementations of core data
-    structures are beyond ridiculously poor, when (or if) the language and api 
-    design make sense at some point in the future the proper data structures 
-    can be written.
+  > bin/p
 
-  * It probably goes without saying, this language is NOT production ready.
+  f :i (x, y) ->       # P has significate whitespace, so indentation
+    if x + y < 10      # is important.  
+      x * y            # 
+    else               # (x, y) -> ... creates a function that takes two
+      10               # arguments x and y.  The body continues on the
+                       # next line (which must be indented), but the entire
+  (x, y) ->            # function could have been written in one line.
+    if x + y < 10      # 
+      x * y            # f := ... binds the function to the name 'f' in
+    else               # the current environment.  Everything in P is an
+      10               # expression with a value, so the assignment returns
+                       # the function which is printed by the repl (which
+  f( 4, 5 )            # is why you see the source for the function listed
+  20                   # twice in this example.
+  f( 5, 5 )            # 
+  10                   # We invoke the function in typical fashion.
+                       #
+  environment          # We can inspect the current environment.
+  (f: (x, y) ->        #
+    if x + y < 10      # P has two assignment operators:
+      x * y            #   :=  immutable assignment
+    else               #   =   mutable assignment
+      10)              #
+                       # These only effect the binding of the string on the
+  foo = :bar           # left-hand side to the value on the right-hand side.
+  "bar"                # The value on the right, may or may not be immutable
+                       # itself.  Here the string 'foo' is bound to the value
+  environment          # 'bar'.  The binding is mutable.
+  (f: (x, y) ->        #
+    if x + y < 10      # When we look at the environment, we can see the
+      x * y            # mutable bindings are depicted with an '=' and the
+    else               # immutable bindings with a ':'.
+      10, foo = "bar") #
+                       # Let's see what happens when we try to change the
+                       # bindings...
+  foo = 42             #
+  42                   # In P, most objects and bindings should be immutable.
+  f = 42                
+  Error: attempt to change immutable binding of f.
+
+                       # Let's look at some literals...
+                       #
+  42.integer?          # Everything is an object, so we can ask 42 if it's
+  true                 # an integer.
+                       #
+  1.5.float?           # 1.5 is not a float (as it would be in many languages)
+  nil                  # (nil and false are the only false-y values in P)
+                       #
+  1.5.ratio?           # It turns out 1.5 is a ratio.
+  true                 #
+                       #
+  1.5.numerator        # All decimal literals are stored as a ratio of a
+  3                    # numerator / denominator.
+  1.5.denominator      #
+  2                    #
+                       #
+  1.5f.float?          # If you want a floating point value, you use the
+  true                 # 'f' suffix.
+                       #
+  1.5 + 1.5            # Ratios are nice, because the math is exact in a
+  3                    # way we might expect.
+                       #
+  (1.5 + 1.5).integer? # Let's look at some strings...
+  true                 #
+                       #
+  :foo                 # The ':' prefix will create a string from a single
+  "foo"                # identifier like string (/\w+/).
+                       #
+  'foo'                # Single quotes can be used to delimit a string without
+  "foo"                # interpolation.
+                       #
+                       # Double quotes provide interpolation:
+
+  "hello #{1 + 1 == 2 ? :world : "friend"}"
+  "hello world"
+                       # The double :: prefix will create a string to the
+                       # end of the line (which allows for interpolation and
+                       # any leading space is removed):
+
+  foo = :: Hello, my friend!  What's your "name"?
+  "Hello, my friend!  What's your "name"?"
+
+                       # The triple ::: prefix will take a multi-line, 
+                       # idented block as a string.  It allows for
+                       # interpolation and strips the indentation spaces:
+
+  name, age = 'Max', 8
+  [Max, 8]
+
+  greeting = :::
+    Hello #{name},
+    
+    I heard that today is your birthday!  Can you really be #{age} years old
+    already?  Wow, you're growing up so fast!
+
+  "Hello Max,
+  I heard that today is your birthday!  Can you really be 8 years old
+  already?  Wow, you're growing up so fast!"
+  
+                       # Let's look at some other literals...
+  list = [1,2,3]       #
+  [1, 2, 3]            # Here's a list.  This should be pretty
+                       # self-evident.  I haven't gotten too far
+  list.list?           # with the api for some of these data structures,
+  true                 # but they're setup to be immutable.
+                       #
+  l#ist.length          # 
+  3                    #
+  list[1]              #
+  2                    #
+  list.first           #
+  1                    #
+  list.last            #
+  3                    #
+                       
+  list.each( (n) -> puts( "#{n} * #{n} is #{n * n}" ) )
+  1 * 1 is 1
+  2 * 2 is 4           # each with a list will pass the value to the given
+  3 * 3 is 9           # function as you'd expect.
+  [1, 2, 3]            #
+                       # In the example, below notice that with two arguments
+                       # the value is the second (the index is the first
+                       # argument).  This is done for consistency with maps.
+                       
+  list.each( (i,n) -> puts( "the value at index #{i} is #{n}" ) )
+  the value at index 0 is 1
+  the value at index 1 is 2
+  the value at index 2 is 3
+  [1, 2, 3]
+
+                       # Let's look at maps (think hash table):
+
+  map = { max: 8, eric: 35 }
+  {max: 8, eric: 35}
+  map[:max]            # Maps work pretty much like you'd expect, here the
+  8                    # keys are strings.  We can use the => operator if
+  map['eric']          # want to use any arbitrary object as the key.
+  35
+
+  map.each( (k,v) -> puts( "#{k} is #{v} years old" ) )
+  max is 8 years old
+  eric is 35 years old
+  {max: 8, eric: 35}
+
+                       # As you can see, maps are also immutable and I 
+                       # haven't finished implementing a full api, yet...
+
+  map.methods
+  [map?, trie?, to_map, to_trie, to_hash, empty?, length, keys, values, [],
+  to_literal, to_string, each]
+
+                       # Briefly, another data structure:
+
+  fruits = { :apple, :orange, :banana }
+  {apple, orange, banana}
+  fruits.set?
+  true
+
+                       # Let's look at control flow...
+                       #
+  x = -10              # 
+  -10                  #
+                       #
+  if x < 0             # The if expression requires indentation and can
+    x = x * -1         # have multiple else's (or none at all).
+  else if x > 0        #
+    x -= 100           #
+  else                 #
+    x += 1             #
+                       # Alternatively, if (and it's opposite: unless) can
+  10                   # be used at the end of an expression:
+                       
+  x += 100  unless x > 1
+  10
+                       # We also have the ternary ?: operator:
+                        
+  x = x < 100 ? 23 : -23
+  23
+
+  while x > 10         # There are also while and until loops:
+    x -= x / 2         #
+                       #
+  6                    #
+
+  x += x  until x > 100
+  192
+
+                       # As of now, there is no for loop.
+
+  g = (x: 3, y: 4) ->  # Let's take another look at functions...
+    x + y              #
+                       #
+  (x: 3, y: 4) ->      # This function has default values for its
+    x + y              # parameters.  These defaults can be full expressions
+                       # and are evaluated as a part of the body of the
+                       # function (before the rest of the body).
+                       #
+  g                    # The function is called automatically, there is no
+  7                    # need for empty parenthesis (like g(), for example).
+                       #
+                       # 'g' is bound to a closure, we can use the &
+                       # operator to suppress automatically calling g...
+                       # 
+                       # In this way, we can inspect the closure...
+  (&g).methods
+  [environment, function, to_string, call, parameters, arity]
+
+  (&g).call( 10, 20 )  #
+  30                   #
+                       #
+  (&g).parameters      #
+  [x: 3, y: 4]         #
+
+  (&g).parameters.first.methods
+  [to_string, mutable?, immutable?, optional?, required?, glob?]
+
+  (&g).parameters.first.immutable?
+  true
+
+                       # We can pass arguments to the function in two ways:
+                       #
+  g( 1, 2 )            # Positionally (x is 1, y is 2).
+  3                    #
+                       #
+  g( x: 1, y: 2 )      # Or, by name (x is 1, y is 2).
+  3                    #
+                       #
+  g( y: 1, x: 2 )      # When calling by name, we can pass the arguments in
+  3                    # any order, or omit arguments with defaults...
+                       #
+  g( y: 100 )          # Here x is the default (3) and y is 100.
+  103                  #
+                       # Let's look at accepting variable arguments:
+  g = (args: *) ->
+    args.each( (k,v) -> puts( "arg #{k} is #{v}" ) )
+
+  (args: *) ->
+    args.each( (k,v) -> puts( "arg #{k} is #{v}" ) )
+
+  g( x: 1 )            # With the splat operator, passing objects by name
+  arg x is 1           # results in a map.  When passing by position we
+  {x: 1}               # are given a list.  Each is one consistent way of
+                       # processing the arguments.
+  g( 1, 2, 'foo' )
+  arg 0 is 1
+  arg 1 is 2
+  arg 2 is foo
+  [1, 2, foo]
+
+  g( foo: 'bar', hello: 'world' )
+  arg foo is bar
+  arg hello is world
+  {foo: bar, hello: world}
+
+
+There's more still to the language (for example, a prototypal object system),
+but the above is an alright intro and much better defined than the other areas
+of the language which are either rough or unimplemented.
+
+
+
 
