@@ -510,10 +510,10 @@ module P
       end
     end
 
-    def consume( token, context=context )
+    def consume( token, context_=context )
       if top === token
         t = top
-        scanner.next_token( context )
+        scanner.next_token( context_ )
         t
       end
     end
